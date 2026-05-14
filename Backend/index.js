@@ -1,5 +1,6 @@
 import express from "express";
 import dotenv from "dotenv";
+import connectDb from "./config/db.js";
 
 dotenv.config();
 
@@ -12,5 +13,6 @@ app.get("/", (req, res) => {
 });
 
 app.listen(port, () => {
+    connectDb()
   console.log(`Server started at http://localhost:${port}`);
 });
