@@ -47,7 +47,7 @@ export const signin = async (req, res) => {
 
         const isMatch = await bcrypt.compare(password, user.password)
         if (!isMatch) {
-            return res.status(400).json({ message: "Incorrect Password." })
+            return res.status(404).json({ message: "Incorrect Password." })
         }
 
         const token = await genToken(user._id)
