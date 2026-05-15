@@ -5,10 +5,13 @@ import { motion } from "framer-motion";
 import { MdOutlineEmail, MdVerifiedUser } from "react-icons/md";
 import { IoEyeOutline, IoEyeOffOutline } from "react-icons/io5";
 import { RiLockPasswordLine } from "react-icons/ri";
+import toast from "react-hot-toast";
+import { serverUrl } from "../App";
+import axios from "axios";
 
 const ForgotPassword = () => {
   const [email, setEmail] = useState("");
-  const [step, setStep] = useState(3);
+  const [step, setStep] = useState(1);
   const [otp, setOtp] = useState("");
   const [timer, setTimer] = useState(30);
   const [canResend, setCanResend] = useState(false);
@@ -18,10 +21,61 @@ const ForgotPassword = () => {
 
   const navigate = useNavigate();
 
-  const handleSendOtp = () => {
-    if (!email) return;
+  const handleSendOtp = async () => {
+    try {
+      if (!email) {
+        return toast.error("Email is required");
+      }
 
-    console.log("OTP sent to:", email);
+      const { data } = await axios.post(
+        `${serverUrl}/api/auth/send-otp`,
+        { email },
+        {
+          withCredentials: true,
+        },
+      );
+
+      if (data.success) {
+        toast.success(data.message);
+        // move next step
+        setStep(2);
+        // timer reset
+        setTimer(30);
+        setCanResend(false);
+      }
+    } catch (error) {
+      console.log(error.response?.data || error.message);
+
+      toast.error(error.response?.data?.message || "Failed to send OTP");
+    }
+  };
+
+  const handleVerifyOtp = async () => {
+    try {
+      if (!otp) {
+        return toast.error("OTP is required");
+      }
+      const { data } = await axios.post(
+        `${serverUrl}/api/auth/verify-otp`,
+        {
+          email,
+          otp,
+        },
+        {
+          withCredentials: true,
+        },
+      );
+
+      if (data.success) {
+        toast.success(data.message);
+        // next step
+        setStep(3);
+      }
+    } catch (error) {
+      console.log(error.response?.data || error.message);
+
+      toast.error(error.response?.data?.message || "OTP verification failed");
+    }
   };
 
   useEffect(() => {
@@ -40,11 +94,63 @@ const ForgotPassword = () => {
     return () => clearInterval(interval);
   }, [timer, step]);
 
-  const handleResendOtp = () => {
-    console.log("OTP Resent");
+  const handleResendOtp = async () => {
+    try {
+      const { data } = await axios.post(
+        `${serverUrl}/api/auth/send-otp`,
+        { email },
+        {
+          withCredentials: true,
+        },
+      );
 
-    setTimer(30);
-    setCanResend(false);
+      if (data.success) {
+        toast.success("OTP Resent Successfully 🎉");
+
+        // reset timer
+        setTimer(30);
+        setCanResend(false);
+      }
+    } catch (error) {
+      console.log(error.response?.data || error.message);
+
+      toast.error(error.response?.data?.message || "Failed to resend OTP");
+    }
+  };
+
+  const handleResetPassword = async () => {
+    try {
+      // validation
+      if (!newPassword || !confirmPassword) {
+        return toast.error("All fields are required");
+      }
+      // password match
+      if (newPassword !== confirmPassword) {
+        return toast.error("Passwords do not match");
+      }
+      const { data } = await axios.post(
+        `${serverUrl}/api/auth/reset-password`,
+        {
+          email,
+          newPassword,
+          confirmPassword,
+        },
+        {
+          withCredentials: true,
+        },
+      );
+
+      if (data.success) {
+        toast.success("Password Reset Successfully 🎉");
+
+        // redirect
+        navigate("/");
+      }
+    } catch (error) {
+      console.log(error.response?.data || error.message);
+
+      toast.error(error.response?.data?.message || "Password reset failed");
+    }
   };
 
   return (
@@ -128,7 +234,7 @@ const ForgotPassword = () => {
             </motion.button>
           </motion.div>
         )}
-        
+
         {step === 2 && (
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -158,6 +264,7 @@ const ForgotPassword = () => {
               whileTap={{ scale: 0.95 }}
               type="button"
               className="w-full mt-4 text-white font-bold py-2.5 rounded-xl shadow-md transition-all hover:opacity-90 bg-[#ff4d2d] hover:bg-[#e64323] cursor-pointer flex items-center justify-center gap-2"
+              onClick={handleVerifyOtp}
             >
               <motion.span
                 animate={{ rotate: [0, 10, -10, 0] }}
@@ -193,6 +300,7 @@ const ForgotPassword = () => {
                   whileTap={{ scale: 0.95 }}
                   onClick={handleResendOtp}
                   className="text-[#ff4d2d] cursor-pointer hover:underline font-medium"
+                  onClick={handleResendOtp}
                 >
                   Resend OTP
                 </motion.span>
@@ -277,6 +385,7 @@ const ForgotPassword = () => {
               whileTap={{ scale: 0.95 }}
               type="button"
               className="w-full mt-2 text-white font-bold py-2.5 rounded-xl shadow-md transition-all hover:opacity-90 bg-[#ff4d2d] hover:bg-[#e64323] cursor-pointer flex items-center justify-center gap-2"
+              onClick={handleResetPassword}
             >
               <motion.span
                 animate={{ rotate: [0, 10, -10, 0] }}
