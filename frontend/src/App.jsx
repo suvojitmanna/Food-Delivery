@@ -1,11 +1,19 @@
-import React from 'react'
+import React from "react";
+import { Route, Routes } from "react-router-dom";
+import Signup from "./pages/signup";
+import Signin from "./pages/signin";
+
+export const serverUrl = import.meta.env.VITE_BASE_URL;
 
 const App = () => {
   return (
-    <div className='bg-green-600'> <h1 class="text-3xl font-bold underline">
-    Hello world!
-  </h1></div>
-  )
-}
+    <div>
+      <Routes>
+        <Route path="/signup" element={<Signup />} />
+        <Route path="/signin" element={<Signin />} />
+      </Routes>
+    </div>
+  );
+};
 
-export default App
+export default App;
