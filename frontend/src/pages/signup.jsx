@@ -7,6 +7,8 @@ import axios from "axios";
 import { serverUrl } from "../App";
 import { FiUserPlus } from "react-icons/fi";
 import toast from "react-hot-toast";
+import { useDispatch } from "react-redux";
+import { setUserData } from "../redux/userSlice";
 
 const Signup = () => {
   const primaryColor = "#ff4d2d";
@@ -19,6 +21,8 @@ const Signup = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [mobile, setMobile] = useState("");
+
+  const dispatch = useDispatch()
 
   const navigate = useNavigate();
 
@@ -36,6 +40,7 @@ const Signup = () => {
         },
         { withCredentials: true },
       );
+      dispatch(setUserData(result.data))
       toast.success("Signup successful 🎉");
       console.log(result.data);
       setTimeout(() => {
@@ -52,7 +57,7 @@ const Signup = () => {
     }
   };
   
-const handleGoogleLogin = async () => {
+const handleGoogleLogin =() => {
   try {
     window.location.href = `${serverUrl}/api/auth/google`;
   } catch (error) {

@@ -6,8 +6,8 @@ import authRouter from "./routes/auth.route.js";
 import cors from "cors";
 import session from "express-session";
 import passport from "passport";
-
 import "./config/passport.js";
+import userRouter from "./routes/user.routes.js";
 
 dotenv.config();
 
@@ -39,6 +39,7 @@ app.use(passport.session());
 
 /* routes */
 app.use("/api/auth", authRouter);
+app.use("/api/user", userRouter);
 
 connectDb();
 

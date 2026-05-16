@@ -7,6 +7,8 @@ import axios from "axios";
 import { serverUrl } from "../App";
 import { FiLogIn } from "react-icons/fi";
 import toast from "react-hot-toast";
+import { useDispatch } from "react-redux";
+import { setUserData } from "../redux/userSlice";
 
 const Signin = () => {
   const primaryColor = "#ff4d2d";
@@ -18,12 +20,13 @@ const Signin = () => {
   const [password, setPassword] = useState("");
 
   const navigate = useNavigate();
+  const dispatch = useDispatch();
 
   const handleSignin = async (e) => {
     e.preventDefault();
 
     try {
-      const { data } = await axios.post(
+      const result = await axios.post(
         `${serverUrl}/api/auth/signin`,
         {
           email,
@@ -33,9 +36,9 @@ const Signin = () => {
           withCredentials: true,
         },
       );
-
+      dispatch(setUserData(result.data));
       toast.success("Login successful 🎉");
-      console.log(data);
+      console.log(result.data);
     } catch (error) {
       if (error.response?.status === 400) {
         toast.error("No account found 🚫");
@@ -51,14 +54,14 @@ const Signin = () => {
   };
 
   const handleGoogleLogin = async () => {
-  try {
-    window.location.href = `${serverUrl}/api/auth/google`;
-  } catch (error) {
-    console.log(error.message);
+    try {
+      window.location.href = `${serverUrl}/api/auth/google`;
+    } catch (error) {
+      console.log(error.message);
 
-    toast.error("Google Login Failed");
-  }
-};
+      toast.error("Google Login Failed");
+    }
+  };
 
   return (
     <motion.div
@@ -118,7 +121,8 @@ const Signin = () => {
               id="email"
               type="email"
               placeholder="Enter your email"
-              className="w-full rounded-xl px-3 py-2 outline-none border focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-all duration-300" required
+              className="w-full rounded-xl px-3 py-2 outline-none border focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-all duration-300"
+              required
               onChange={(e) => setEmail(e.target.value)}
               value={email}
             />
@@ -145,7 +149,8 @@ const Signin = () => {
                 placeholder="Enter your password"
                 minLength={6}
                 autoComplete="new-password"
-                className="w-full rounded-xl pl-3 pr-10 py-2 outline-none border focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-all duration-300" required
+                className="w-full rounded-xl pl-3 pr-10 py-2 outline-none border focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-all duration-300"
+                required
                 onChange={(e) => setPassword(e.target.value)}
                 value={password}
               />
@@ -206,7 +211,8 @@ const Signin = () => {
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.95 }}
             type="button"
-            className="w-full mt-3 flex items-center justify-center gap-2 border border-gray-700 rounded-xl px-4 py-2 transition-colors duration-200 cursor-pointer bg-gray-800 text-white hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-500" onClick={handleGoogleLogin}
+            className="w-full mt-3 flex items-center justify-center gap-2 border border-gray-700 rounded-xl px-4 py-2 transition-colors duration-200 cursor-pointer bg-gray-800 text-white hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-500"
+            onClick={handleGoogleLogin}
           >
             <motion.div
               animate={{ rotate: [0, 10, -10, 0] }}

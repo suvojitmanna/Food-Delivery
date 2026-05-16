@@ -25,7 +25,7 @@ authRouter.get("/google", passport.authenticate("google", { scope: ["profile", "
 );
 
 /* google callback */
-authRouter.get("/google/callback", passport.authenticate("google", { session: false, failureRedirect: "/login", }),
+authRouter.get("/google/callback", passport.authenticate("google", { session: false, failureRedirect: "/signin", }),
     googleAuthSuccess
 );
 
