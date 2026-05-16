@@ -3,6 +3,7 @@ import bcrypt from "bcryptjs"
 import genToken from "../utils/token.js"
 import crypto from "crypto";
 import { sendOtpEmail } from "../utils/mail.js"
+import jwt from "jsonwebtoken";
 
 export const signup = async (req, res) => {
     try {
@@ -261,6 +262,43 @@ export const resetPassword = async (req, res) => {
     });
   } catch (error) {
     console.log("Reset Password Error:", error.message);
+
+    return res.status(500).json({
+      success: false,
+      message: "Internal Server Error",
+    });
+  }
+};
+
+export const googleAuthSuccess = async (req, res) => {
+  try {
+    if (!req.user) {
+      return res.status(401).json({
+        success: false,
+        message: "Authentication Failed",
+      });
+    }
+
+    const token = jwt.sign(
+      {
+        id: req.user._id,
+      },
+      process.env.JWT_SECRET_KEY,
+      {
+        expiresIn: "7d",
+      }
+    );
+
+    res.cookie("token", token, {
+      httpOnly: true,
+      secure: false,
+      sameSite: "lax",
+      maxAge: 7 * 24 * 60 * 60 * 1000,
+    });
+
+    return res.redirect(`${process.env.VITE_CLIENT_URL}`);
+  } catch (error) {
+    console.log(error.message);
 
     return res.status(500).json({
       success: false,

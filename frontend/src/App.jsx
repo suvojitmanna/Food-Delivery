@@ -6,6 +6,7 @@ import Signup from "./pages/signup";
 import Signin from "./pages/signin";
 import ForgotPassword from "./pages/forgotPassword";
 
+console.log(import.meta.env.VITE_BASE_URL);
 export const serverUrl = import.meta.env.VITE_BASE_URL;
 
 const App = () => {

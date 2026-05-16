@@ -50,6 +50,16 @@ const Signin = () => {
     }
   };
 
+  const handleGoogleLogin = async () => {
+  try {
+    window.location.href = `${serverUrl}/api/auth/google`;
+  } catch (error) {
+    console.log(error.message);
+
+    toast.error("Google Login Failed");
+  }
+};
+
   return (
     <motion.div
       initial={{ opacity: 0 }}
@@ -108,7 +118,7 @@ const Signin = () => {
               id="email"
               type="email"
               placeholder="Enter your email"
-              className="w-full rounded-xl px-3 py-2 outline-none border focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-all duration-300"
+              className="w-full rounded-xl px-3 py-2 outline-none border focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-all duration-300" required
               onChange={(e) => setEmail(e.target.value)}
               value={email}
             />
@@ -135,7 +145,7 @@ const Signin = () => {
                 placeholder="Enter your password"
                 minLength={6}
                 autoComplete="new-password"
-                className="w-full rounded-xl pl-3 pr-10 py-2 outline-none border focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-all duration-300"
+                className="w-full rounded-xl pl-3 pr-10 py-2 outline-none border focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-all duration-300" required
                 onChange={(e) => setPassword(e.target.value)}
                 value={password}
               />
@@ -196,7 +206,7 @@ const Signin = () => {
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.95 }}
             type="button"
-            className="w-full mt-3 flex items-center justify-center gap-2 border border-gray-700 rounded-xl px-4 py-2 transition-colors duration-200 cursor-pointer bg-gray-800 text-white hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-500"
+            className="w-full mt-3 flex items-center justify-center gap-2 border border-gray-700 rounded-xl px-4 py-2 transition-colors duration-200 cursor-pointer bg-gray-800 text-white hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-500" onClick={handleGoogleLogin}
           >
             <motion.div
               animate={{ rotate: [0, 10, -10, 0] }}

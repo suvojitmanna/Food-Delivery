@@ -21,7 +21,7 @@ const Signup = () => {
   const [mobile, setMobile] = useState("");
 
   const navigate = useNavigate();
-  
+
   const handleSignup = async (e) => {
     e.preventDefault();
     try {
@@ -38,6 +38,9 @@ const Signup = () => {
       );
       toast.success("Signup successful 🎉");
       console.log(result.data);
+      setTimeout(() => {
+      navigate("/");
+    }, 1000);
     } catch (error) {
       const errorMessage =
         error.response?.data?.message ||
@@ -48,6 +51,16 @@ const Signup = () => {
       toast.error(errorMessage);
     }
   };
+  
+const handleGoogleLogin = async () => {
+  try {
+    window.location.href = `${serverUrl}/api/auth/google`;
+  } catch (error) {
+    console.log(error.message);
+
+    toast.error("Google Login Failed");
+  }
+};
 
   return (
     <motion.div
@@ -107,7 +120,7 @@ const Signup = () => {
               id="fullName"
               type="text"
               placeholder="Enter your full name"
-              className="w-full rounded-xl px-3 py-2 outline-none border focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-all duration-300"
+              className="w-full rounded-xl px-3 py-2 outline-none border focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-all duration-300" required
               onChange={(e) => setFullname(e.target.value)}
               value={fullName}
             />
@@ -131,7 +144,7 @@ const Signup = () => {
               id="email"
               type="email"
               placeholder="Enter your email"
-              className="w-full rounded-xl px-3 py-2 outline-none border focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-all duration-300"
+              className="w-full rounded-xl px-3 py-2 outline-none border focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-all duration-300" required
               onChange={(e) => setEmail(e.target.value)}
               value={email}
             />
@@ -156,7 +169,7 @@ const Signup = () => {
               type="tel"
               placeholder="Enter your mobile number"
               pattern="[0-9]{10}"
-              className="w-full rounded-xl px-3 py-2 outline-none border focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-all duration-300"
+              className="w-full rounded-xl px-3 py-2 outline-none border focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-all duration-300" required
               onChange={(e) => setMobile(e.target.value)}
               value={mobile}
             />
@@ -183,7 +196,7 @@ const Signup = () => {
                 placeholder="Enter your password"
                 minLength={6}
                 autoComplete="new-password"
-                className="w-full rounded-xl pl-3 pr-10 py-2 outline-none border focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-all duration-300"
+                className="w-full rounded-xl pl-3 pr-10 py-2 outline-none border focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-all duration-300" required
                 onChange={(e) => setPassword(e.target.value)}
                 value={password}
               />
@@ -281,6 +294,7 @@ const Signup = () => {
             whileTap={{ scale: 0.95 }}
             type="button"
             className="w-full mt-3 flex items-center justify-center gap-2 border border-gray-700 rounded-xl px-4 py-2 transition-colors duration-200 cursor-pointer bg-gray-800 text-white hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-500"
+            onClick={handleGoogleLogin}
           >
             <motion.div
               animate={{ rotate: [0, 10, -10, 0] }}
