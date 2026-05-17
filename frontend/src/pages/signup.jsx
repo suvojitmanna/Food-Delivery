@@ -22,7 +22,7 @@ const Signup = () => {
   const [password, setPassword] = useState("");
   const [mobile, setMobile] = useState("");
 
-  const dispatch = useDispatch()
+  const dispatch = useDispatch();
 
   const navigate = useNavigate();
 
@@ -40,12 +40,12 @@ const Signup = () => {
         },
         { withCredentials: true },
       );
-      dispatch(setUserData(result.data))
+      dispatch(setUserData(result.data.user));
       toast.success("Signup successful 🎉");
       console.log(result.data);
       setTimeout(() => {
-      navigate("/");
-    }, 1000);
+        navigate("/");
+      }, 1000);
     } catch (error) {
       const errorMessage =
         error.response?.data?.message ||
@@ -56,16 +56,16 @@ const Signup = () => {
       toast.error(errorMessage);
     }
   };
-  
-const handleGoogleLogin =() => {
-  try {
-    window.location.href = `${serverUrl}/api/auth/google`;
-  } catch (error) {
-    console.log(error.message);
 
-    toast.error("Google Login Failed");
-  }
-};
+  const handleGoogleLogin = () => {
+    try {
+      window.location.href = `${serverUrl}/api/auth/google`;
+    } catch (error) {
+      console.log(error.message);
+
+      toast.error("Google Login Failed");
+    }
+  };
 
   return (
     <motion.div
@@ -125,7 +125,8 @@ const handleGoogleLogin =() => {
               id="fullName"
               type="text"
               placeholder="Enter your full name"
-              className="w-full rounded-xl px-3 py-2 outline-none border focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-all duration-300" required
+              className="w-full rounded-xl px-3 py-2 outline-none border focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-all duration-300"
+              required
               onChange={(e) => setFullname(e.target.value)}
               value={fullName}
             />
@@ -149,7 +150,8 @@ const handleGoogleLogin =() => {
               id="email"
               type="email"
               placeholder="Enter your email"
-              className="w-full rounded-xl px-3 py-2 outline-none border focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-all duration-300" required
+              className="w-full rounded-xl px-3 py-2 outline-none border focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-all duration-300"
+              required
               onChange={(e) => setEmail(e.target.value)}
               value={email}
             />
@@ -174,7 +176,8 @@ const handleGoogleLogin =() => {
               type="tel"
               placeholder="Enter your mobile number"
               pattern="[0-9]{10}"
-              className="w-full rounded-xl px-3 py-2 outline-none border focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-all duration-300" required
+              className="w-full rounded-xl px-3 py-2 outline-none border focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-all duration-300"
+              required
               onChange={(e) => setMobile(e.target.value)}
               value={mobile}
             />
@@ -201,7 +204,8 @@ const handleGoogleLogin =() => {
                 placeholder="Enter your password"
                 minLength={6}
                 autoComplete="new-password"
-                className="w-full rounded-xl pl-3 pr-10 py-2 outline-none border focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-all duration-300" required
+                className="w-full rounded-xl pl-3 pr-10 py-2 outline-none border focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-all duration-300"
+                required
                 onChange={(e) => setPassword(e.target.value)}
                 value={password}
               />

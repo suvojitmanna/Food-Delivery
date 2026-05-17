@@ -6,136 +6,136 @@ import { sendOtpEmail } from "../utils/mail.js"
 import jwt from "jsonwebtoken";
 
 export const signup = async (req, res) => {
-    try {
-        const { fullName, email, password, mobile, role } = req.body
-        let user = await User.findOne({ email })
-        if (user) {
-            return res.status(400).json({ message: "User Already exist." })
-        }
-        if (password.length < 6) {
-            return res.status(400).json({ message: "password must be at least 6 character." })
-        }
-        if (mobile.length < 10) {
-            return res.status(400).json({ message: "Please input a correct mobile number." })
-        }
-        const hashedPassword = await bcrypt.hash(password, 10)
-        user = await User.create({
-            fullName,
-            email,
-            role,
-            mobile,
-            password: hashedPassword
-        })
-
-        const token = await genToken(user._id)
-        res.cookie("token", token, {
-            secure: false,
-            sameSite: "strict",
-            maxAge: 7 * 24 * 60 * 60 * 1000,
-            httpOnly: true
-        })
-        return res.status(201).json(user)
-    } catch (error) {
-        return res.status(500).json(`signup error ${error}`)
+  try {
+    const { fullName, email, password, mobile, role } = req.body
+    let user = await User.findOne({ email })
+    if (user) {
+      return res.status(400).json({ message: "User Already exist." })
     }
+    if (password.length < 6) {
+      return res.status(400).json({ message: "password must be at least 6 character." })
+    }
+    if (mobile.length < 10) {
+      return res.status(400).json({ message: "Please input a correct mobile number." })
+    }
+    const hashedPassword = await bcrypt.hash(password, 10)
+    user = await User.create({
+      fullName,
+      email,
+      role,
+      mobile,
+      password: hashedPassword
+    })
+
+    const token = await genToken(user._id)
+    res.cookie("token", token, {
+      secure: false,
+      sameSite: "lax",
+      maxAge: 7 * 24 * 60 * 60 * 1000,
+      httpOnly: true
+    })
+    return res.status(201).json(user)
+  } catch (error) {
+    return res.status(500).json(`signup error ${error}`)
+  }
 }
 
 export const signin = async (req, res) => {
-    try {
-        const { email, password } = req.body
-        let user = await User.findOne({ email })
-        if (!user) {
-            return res.status(400).json({ message: "User does not exist." })
-        }
-
-        const isMatch = await bcrypt.compare(password, user.password)
-        if (!isMatch) {
-            return res.status(404).json({ message: "Incorrect Password." })
-        }
-
-        const token = await genToken(user._id)
-        res.cookie("token", token, {
-            secure: false,
-            sameSite: "strict",
-            maxAge: 7 * 24 * 60 * 60 * 1000,
-            httpOnly: true
-        })
-        return res.status(200).json(user)
-    } catch (error) {
-        return res.status(500).json(`signin error ${error}`)
+  try {
+    const { email, password } = req.body
+    let user = await User.findOne({ email })
+    if (!user) {
+      return res.status(400).json({ message: "User does not exist." })
     }
+
+    const isMatch = await bcrypt.compare(password, user.password)
+    if (!isMatch) {
+      return res.status(404).json({ message: "Incorrect Password." })
+    }
+
+    const token = await genToken(user._id)
+    res.cookie("token", token, {
+      secure: false,
+      sameSite: "lax",
+      maxAge: 7 * 24 * 60 * 60 * 1000,
+      httpOnly: true
+    })
+    return res.status(200).json(user)
+  } catch (error) {
+    return res.status(500).json(`signin error ${error}`)
+  }
 }
 
 export const signOut = async (req, res) => {
-    try {
-        res.clearCookie("token")
+  try {
+    res.clearCookie("token")
 
-        return res.status(200).json({
-            message: "Signout Successfully"
-        })
+    return res.status(200).json({
+      message: "Signout Successfully"
+    })
 
-    } catch (error) {
-        return res.status(500).json(`signOut error ${error}`)
-    }
+  } catch (error) {
+    return res.status(500).json(`signOut error ${error}`)
+  }
 }
 
 export const sendOtp = async (req, res) => {
-    try {
-        const { email } = req.body;
+  try {
+    const { email } = req.body;
 
-        // validation
-        if (!email) {
-            return res.status(400).json({
-                success: false,
-                message: "Email is required",
-            });
-        }
-
-        // check user
-        const user = await User.findOne({ email });
-
-        if (!user) {
-            return res.status(404).json({
-                success: false,
-                message: "No account found with this email",
-            });
-        }
-
-        // generate otp
-        const otp = crypto.randomInt(100000, 999999).toString();
-
-        // expiry time (5 min)
-        const otpExpire = Date.now() + 5 * 60 * 1000;
-
-        // save otp
-        user.resetOtp = otp;
-        user.resetOtpExpire = otpExpire;
-        user.isOtpVerified = false
-
-        await user.save();
-
-        // send email
-        const isSent = await sendOtpEmail(email, otp);
-
-        if (!isSent) {
-            return res.status(500).json({
-                success: false,
-                message: "Failed to send OTP",
-            });
-        }
-
-        return res.status(200).json({
-            success: true,
-            message: "OTP sent successfully",
-        });
-    } catch (error) {
-        console.log("Send OTP Error:", error.message);
-
-        return res.status(500).json({
-            success: false,
-            message: "Internal Server Error",
-        });
+    // validation
+    if (!email) {
+      return res.status(400).json({
+        success: false,
+        message: "Email is required",
+      });
     }
+
+    // check user
+    const user = await User.findOne({ email });
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "No account found with this email",
+      });
+    }
+
+    // generate otp
+    const otp = crypto.randomInt(100000, 999999).toString();
+
+    // expiry time (5 min)
+    const otpExpire = Date.now() + 5 * 60 * 1000;
+
+    // save otp
+    user.resetOtp = otp;
+    user.resetOtpExpire = otpExpire;
+    user.isOtpVerified = false
+
+    await user.save();
+
+    // send email
+    const isSent = await sendOtpEmail(email, otp);
+
+    if (!isSent) {
+      return res.status(500).json({
+        success: false,
+        message: "Failed to send OTP",
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: "OTP sent successfully",
+    });
+  } catch (error) {
+    console.log("Send OTP Error:", error.message);
+
+    return res.status(500).json({
+      success: false,
+      message: "Internal Server Error",
+    });
+  }
 };
 
 export const verifyOtp = async (req, res) => {

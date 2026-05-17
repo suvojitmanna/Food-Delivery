@@ -37,6 +37,7 @@ const Signin = () => {
         },
       );
       dispatch(setUserData(result.data));
+      navigate("/");
       toast.success("Login successful 🎉");
       console.log(result.data);
     } catch (error) {

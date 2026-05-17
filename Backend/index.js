@@ -7,7 +7,7 @@ import cors from "cors";
 import session from "express-session";
 import passport from "passport";
 import "./config/passport.js";
-import userRouter from "./routes/user.routes.js";
+import userRouter from "./routes/user.route.js";
 
 dotenv.config();
 
