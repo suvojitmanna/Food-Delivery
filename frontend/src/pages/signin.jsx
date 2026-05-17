@@ -54,6 +54,8 @@ const Signin = () => {
     }
   };
 
+  const isFormValid = email.trim() && password.length >= 6;
+
   const handleGoogleLogin = async () => {
     try {
       window.location.href = `${serverUrl}/api/auth/google`;
@@ -188,23 +190,39 @@ const Signin = () => {
 
           {/* Sign In Button */}
           <motion.button
-            whileHover={{ scale: 1.03 }}
-            whileTap={{ scale: 0.95 }}
+            whileHover={isFormValid ? { scale: 1.03 } : {}}
+            whileTap={isFormValid ? { scale: 0.95 } : {}}
             type="submit"
-            className="w-full text-white font-bold py-2.5 rounded-xl shadow-md transition-all hover:opacity-90 bg-[#ff4d2d] hover:bg-[#e64323] cursor-pointer flex items-center justify-center gap-2"
+            disabled={!isFormValid}
+            className={`
+                        w-full text-white font-bold py-2.5 rounded-xl shadow-md transition-all flex items-center justify-center gap-2
+                        disabled:bg-[#de725f] disabled:text-[#1a1a24]/80 disabled:cursor-not-allowed disabled:shadow-none disabled:opacity-50
+                        ${isFormValid ? "bg-[#ff4d2d] hover:bg-[#e64323] hover:opacity-90 cursor-pointer" : ""}
+                      `}
             onClick={handleSignin}
           >
             <motion.span
-              animate={{ x: [0, 4, 0] }}
+              animate={
+                isFormValid ? { rotate: [0, 10, -10, 0] } : { rotate: 0 }
+              }
               transition={{
-                duration: 1,
+                duration: 1.2,
                 repeat: Infinity,
                 ease: "easeInOut",
               }}
             >
               <FiLogIn size={20} />
             </motion.span>
-            Sign In
+
+            <motion.span
+              animate={isFormValid ? { opacity: [1, 0.8, 1] } : { opacity: 1 }}
+              transition={{
+                duration: 1.2,
+                repeat: Infinity,
+              }}
+            >
+              Sign In
+            </motion.span>
           </motion.button>
 
           {/* Google Button */}

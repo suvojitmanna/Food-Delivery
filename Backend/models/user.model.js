@@ -24,6 +24,11 @@ const userSchema = new mongoose.Schema(
       default: "user",
     },
 
+    isProfileComplete: {
+      type: Boolean,
+      default: false,
+    },
+
     resetOtp: {
       type: String,
     },

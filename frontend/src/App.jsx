@@ -8,7 +8,7 @@ import ForgotPassword from "./pages/forgotPassword";
 import useGetCurrentUser from "./hooks/userGetCurrentUser";
 import { useSelector } from "react-redux";
 import Home from "./pages/home";
-import { FaCircleNotch } from "react-icons/fa";
+import SelectedRole from "./pages/selectedRole"
 
 export const serverUrl = import.meta.env.VITE_BASE_URL;
 
@@ -49,7 +49,32 @@ const App = () => {
 
         <Route
           path="/"
-          element={userData ? <Home /> : <Navigate to="/signin" />}
+          element={
+            userData ? (
+              userData.isProfileComplete ? (
+                <Home />
+              ) : (
+                <Navigate to="/select-role" />
+              )
+            ) : (
+              <Navigate to="/signin" />
+            )
+          }
+        />
+
+        <Route
+          path="/select-role"
+          element={
+            userData ? (
+              !userData.isProfileComplete ? (
+                <SelectedRole />
+              ) : (
+                <Navigate to="/" />
+              )
+            ) : (
+              <Navigate to="/signin" />
+            )
+          }
         />
       </Routes>
 

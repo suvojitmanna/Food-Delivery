@@ -26,6 +26,7 @@ passport.use(
                     googleId: profile.id,
                     profilePic: profile.photos[0].value,
                     authType: "google",
+                    isProfileComplete: false,
                 });
 
                 return done(null, newUser);

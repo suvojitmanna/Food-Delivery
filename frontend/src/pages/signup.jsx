@@ -16,7 +16,6 @@ const Signup = () => {
   const borderColor = "#ddd";
 
   const [showPassword, setShowPassword] = useState(false);
-  const [role, setRole] = useState("user");
   const [fullName, setFullname] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -36,7 +35,6 @@ const Signup = () => {
           email,
           password,
           mobile,
-          role,
         },
         { withCredentials: true },
       );
@@ -44,7 +42,7 @@ const Signup = () => {
       toast.success("Signup successful 🎉");
       console.log(result.data);
       setTimeout(() => {
-        navigate("/");
+        navigate("/select-role");
       }, 1000);
     } catch (error) {
       const errorMessage =
@@ -56,6 +54,9 @@ const Signup = () => {
       toast.error(errorMessage);
     }
   };
+
+  const isFormValid =
+    fullName.trim() && email.trim() && mobile.trim() && password.length >= 6;
 
   const handleGoogleLogin = () => {
     try {
@@ -225,58 +226,22 @@ const Signup = () => {
             </div>
           </motion.div>
 
-          {/* Role */}
-          <motion.div
-            initial={{ y: 20, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            transition={{ delay: 0.9 }}
-            className="mb-3"
-          >
-            <label
-              htmlFor="role"
-              className="block text-gray-700 font-medium mb-1"
-            >
-              Role
-            </label>
-
-            <div className="flex gap-2">
-              {["user", "owner", "deliveryBoy"].map((r) => (
-                <motion.button
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  key={r}
-                  type="button"
-                  onClick={() => setRole(r)}
-                  className="flex-1 px-2 py-2 rounded-lg border text-center text-sm font-medium transition-all cursor-pointer"
-                  style={
-                    role === r
-                      ? {
-                          backgroundColor: primaryColor,
-                          color: "white",
-                          borderColor: primaryColor,
-                        }
-                      : {
-                          border: `1px solid ${primaryColor}`,
-                          color: primaryColor,
-                        }
-                  }
-                >
-                  {r}
-                </motion.button>
-              ))}
-            </div>
-          </motion.div>
-
           {/* Sign Up Button */}
           <motion.button
-            whileHover={{ scale: 1.03 }}
-            whileTap={{ scale: 0.95 }}
+            whileHover={isFormValid ? { scale: 1.03 } : {}}
+            whileTap={isFormValid ? { scale: 0.95 } : {}}
             type="submit"
-            onClick={handleSignup}
-            className="w-full text-white font-bold py-2.5 rounded-xl shadow-md transition-all hover:opacity-90 bg-[#ff4d2d] hover:bg-[#e64323] cursor-pointer flex items-center justify-center gap-2"
+            disabled={!isFormValid}
+            className={`
+              w-full text-white font-bold py-2.5 rounded-xl shadow-md transition-all flex items-center justify-center gap-2
+              disabled:bg-[#de725f] disabled:text-[#1a1a24]/80 disabled:cursor-not-allowed disabled:shadow-none disabled:opacity-50
+              ${isFormValid ? "bg-[#ff4d2d] hover:bg-[#e64323] hover:opacity-90 cursor-pointer" : ""}
+            `}onClick={handleSignup}
           >
             <motion.span
-              animate={{ rotate: [0, 10, -10, 0] }}
+              animate={
+                isFormValid ? { rotate: [0, 10, -10, 0] } : { rotate: 0 }
+              }
               transition={{
                 duration: 1.2,
                 repeat: Infinity,
@@ -287,7 +252,7 @@ const Signup = () => {
             </motion.span>
 
             <motion.span
-              animate={{ opacity: [1, 0.8, 1] }}
+              animate={isFormValid ? { opacity: [1, 0.8, 1] } : { opacity: 1 }}
               transition={{
                 duration: 1.2,
                 repeat: Infinity,

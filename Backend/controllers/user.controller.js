@@ -31,3 +31,33 @@ export const getCurrentUser = async (req, res) => {
         });
     }
 };
+
+export const updateRole = async (req, res) => {
+    try {
+
+        const { role } = req.body;
+
+        const user = await User.findByIdAndUpdate(
+            req.user._id,
+            {
+                role,
+                isProfileComplete: true
+            },
+            {
+                new: true
+            }
+        ).select("-password");
+
+        return res.status(200).json({
+            success: true,
+            user
+        });
+
+    } catch (error) {
+
+        return res.status(500).json({
+            success: false,
+            message: error.message
+        });
+    }
+};
