@@ -21,9 +21,8 @@ export const isAuth = async (req, res, next) => {
                 message: "User not found",
             });
         }
-
-        // attach user
         req.user = user;
+        req.userId = user._id;
 
         next();
     } catch (error) {

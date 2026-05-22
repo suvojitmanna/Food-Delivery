@@ -12,6 +12,7 @@ import SelectedRole from "./pages/selectedRole"
 import CreateEditShop from "./pages/createEditShop"
 import useGetCity from "./hooks/useGetCity";
 import useGetMyShop from "./hooks/useGetMyShop";
+import AddItem from "./pages/addItem";
 
 export const serverUrl = import.meta.env.VITE_BASE_URL;
 
@@ -87,6 +88,14 @@ const App = () => {
             userData ? 
             <CreateEditShop/> :
               <Navigate to="/" />
+          }
+        />
+        <Route
+          path="/add-item"
+          element={
+            userData ? 
+            <AddItem/> :
+              <Navigate to="/signin" />
           }
         />
       </Routes>

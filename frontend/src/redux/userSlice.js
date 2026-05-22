@@ -6,7 +6,7 @@ const userSlice = createSlice({
     initialState: {
         userData: null,
         loading: true,
-        city: null
+        city: null,
     },
 
     reducers: {

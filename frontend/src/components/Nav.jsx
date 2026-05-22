@@ -142,7 +142,7 @@ const Nav = () => {
                     className="flex items-center gap-2 px-4 h-11 bg-[#ff4d2d]/10 border border-gray-200 hover:border-[#ff4d2d] rounded-3xl text-xs font-bold  tracking-wider text-[#ff4d2d] shadow-sm transition-all duration-200 cursor-pointer"
                   >
                     <span className="font-semibold text-sm">
-                      Add Food Items{" "}
+                      Add Food
                     </span>
                     <FaPlus size={12} className="stroke-[2]" />
                   </motion.button>
@@ -366,9 +366,6 @@ const Nav = () => {
           </motion.div>
         )}
       </AnimatePresence>
-
-      {/* PAGE SPACING */}
-      <div className="h-24" />
     </>
   );
 };

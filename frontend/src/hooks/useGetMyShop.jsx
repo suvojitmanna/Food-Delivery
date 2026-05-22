@@ -2,7 +2,7 @@ import { useEffect } from "react";
 import axios from "axios";
 import { useDispatch } from "react-redux";
 
-import { setLoading, setMyShop } from "../redux/ownerSlice";
+import { setLoading, setMyShopData } from "../redux/ownerSlice";
 
 import { serverUrl } from "../App";
 
@@ -19,7 +19,7 @@ const useGetMyShop = () => {
         });
 
         if (result.data.success) {
-          dispatch(setMyShop(result.data.shop));
+          dispatch(setMyShopData(result.data.shop));
         }
       } catch (error) {
         console.log(
@@ -27,7 +27,7 @@ const useGetMyShop = () => {
           error.response?.data || error.message,
         );
 
-        dispatch(setMyShop(null));
+        dispatch(setMyShopData(null));
       } finally {
         dispatch(setLoading(false));
       }

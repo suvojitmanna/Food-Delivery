@@ -17,7 +17,6 @@ export const createOrEditShop = async (req, res) => {
             categories,
             items,
         } = req.body;
-
         // Validation
         if (
             !name ||
@@ -32,7 +31,7 @@ export const createOrEditShop = async (req, res) => {
         }
 
         let shop = await Shop.findOne({
-            owner: req.userId,
+            owner: req.user._id,
         });
 
         let imageUrl = shop?.image || "";
@@ -40,7 +39,14 @@ export const createOrEditShop = async (req, res) => {
             const uploadedImage =
                 await uploadOnCloudinary(req.file.path);
 
-            imageUrl = uploadedImage.secure_url;
+            if (!uploadedImage) {
+                return res.status(400).json({
+                    success: false,
+                    message: "Image upload failed",
+                });
+            }
+
+            imageUrl = uploadedImage;
         }
         // CREATE SHOP 
         if (!shop) {
@@ -54,7 +60,7 @@ export const createOrEditShop = async (req, res) => {
             shop = await Shop.create({
                 name,
                 image: imageUrl,
-                owner: req.userId,
+                owner: req.user._id,
                 city,
                 state,
                 address,
@@ -106,7 +112,7 @@ export const createOrEditShop = async (req, res) => {
                 : categories || shop.categories;
         // Save updated shop
         await shop.save();
-        await shop.populate("owner");
+        await shop.populate("owner items");
         return res.status(200).json({
             success: true,
             message:

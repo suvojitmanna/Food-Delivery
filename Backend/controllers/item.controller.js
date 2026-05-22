@@ -21,8 +21,7 @@ export const addItem = async (req, res) => {
             !name ||
             !price ||
             !category ||
-            !type ||
-            !req.file
+            !type
         ) {
             return res.status(400).json({
                 success: false,
@@ -40,13 +39,12 @@ export const addItem = async (req, res) => {
                 message: "Shop not found",
             });
         }
-        // Upload image
         let imageUrl = "";
         if (req.file) {
             const uploadedImage =
                 await uploadOnCloudinary(req.file.path);
 
-            imageUrl = uploadedImage.secure_url;
+            imageUrl = uploadedImage;
         }
         if (!imageUrl) {
             return res.status(500).json({
@@ -78,7 +76,7 @@ export const addItem = async (req, res) => {
         return res.status(201).json({
             success: true,
             message: "Item added successfully",
-            item,
+            shop,
         });
     } catch (error) {
         console.log(error);
@@ -92,7 +90,7 @@ export const addItem = async (req, res) => {
 
 export const editItem = async (req, res) => {
     try {
-        const { itemId } = req.params.itemId;
+        const { itemId } = req.params;
         const {
             name,
             description,
@@ -151,11 +149,11 @@ export const editItem = async (req, res) => {
         item.description = description || item.description;
         item.price = price || item.price;
         item.originalPrice = originalPrice || item.originalPrice;
-        item.category =  category || item.category;
+        item.category = category || item.category;
         item.type = type || item.type;
         item.isAvailable = typeof isAvailable === "boolean" ? isAvailable : item.isAvailable;
         item.isFeatured = typeof isFeatured === "boolean" ? isFeatured : item.isFeatured;
-        item.rating =  rating || item.rating;
+        item.rating = rating || item.rating;
         item.totalReviews = totalReviews || item.totalReviews;
         item.preparationTime = preparationTime || item.preparationTime;
 
