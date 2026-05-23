@@ -8,18 +8,19 @@ import ForgotPassword from "./pages/forgotPassword";
 import useGetCurrentUser from "./hooks/userGetCurrentUser";
 import { useSelector } from "react-redux";
 import Home from "./pages/home";
-import SelectedRole from "./pages/selectedRole"
-import CreateEditShop from "./pages/createEditShop"
+import SelectedRole from "./pages/selectedRole";
+import CreateEditShop from "./pages/createEditShop";
 import useGetCity from "./hooks/useGetCity";
 import useGetMyShop from "./hooks/useGetMyShop";
 import AddItem from "./pages/addItem";
+import EditItem from "./pages/editItem";
 
 export const serverUrl = import.meta.env.VITE_BASE_URL;
 
 const App = () => {
   useGetCurrentUser();
-  useGetCity()
-  useGetMyShop()
+  useGetCity();
+  useGetMyShop();
   const { userData, loading } = useSelector((state) => state.user);
 
   if (loading) {
@@ -84,19 +85,15 @@ const App = () => {
 
         <Route
           path="/create-edit-shop"
-          element={
-            userData ? 
-            <CreateEditShop/> :
-              <Navigate to="/" />
-          }
+          element={userData ? <CreateEditShop /> : <Navigate to="/" />}
         />
         <Route
           path="/add-item"
-          element={
-            userData ? 
-            <AddItem/> :
-              <Navigate to="/signin" />
-          }
+          element={userData ? <AddItem /> : <Navigate to="/signin" />}
+        />
+        <Route
+          path="/edit-item/:itemId"
+          element={userData ? <EditItem /> : <Navigate to="/signin" />}
         />
       </Routes>
 

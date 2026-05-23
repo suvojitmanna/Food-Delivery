@@ -71,12 +71,16 @@ export const addItem = async (req, res) => {
         });
 
         shop.items.push(item._id);
+
         await shop.save();
-        await item.populate("shop");
+
+        const updatedShop = await Shop.findById(shop._id)
+            .populate("items");
+
         return res.status(201).json({
             success: true,
             message: "Item added successfully",
-            shop,
+            shop: updatedShop,
         });
     } catch (error) {
         console.log(error);
@@ -169,6 +173,28 @@ export const editItem = async (req, res) => {
         console.log(error);
 
         return res.status(500).json({
+            success: false,
+            message: "Server Error",
+        });
+    }
+};
+
+export const getSingleItem = async (req, res) => {
+    try {
+        const item = await Item.findById(req.params.itemId);
+        if (!item) {
+            return res.status(404).json({
+                success: false,
+                message: "Item not found",
+            });
+        }
+        res.status(200).json({
+            success: true,
+            item,
+        });
+    } catch (error) {
+        console.log(error);
+        res.status(500).json({
             success: false,
             message: "Server Error",
         });

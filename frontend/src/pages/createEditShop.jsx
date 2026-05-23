@@ -59,17 +59,20 @@ const CreateEditShop = () => {
   // submit
   const handleSubmit = async (e) => {
     e.preventDefault();
+
     try {
       const formData = new FormData();
+
       formData.append("name", name);
       formData.append("address", address);
       formData.append("city", citys);
       formData.append("state", state);
       formData.append("description", description);
+
       if (backendImage instanceof File) {
-  formData.append("image", backendImage);
-}
-      console.log([...formData]);
+        formData.append("image", backendImage);
+      }
+
       const result = await axios.post(
         `${serverUrl}/api/shop/create-edit`,
         formData,
@@ -77,8 +80,10 @@ const CreateEditShop = () => {
           withCredentials: true,
         },
       );
-      dispatch(setMyShopData(result.data));
-      console.log(result.data);
+
+      dispatch(setMyShopData(result.data.shop));
+
+      navigate("/");
     } catch (error) {
       console.log(error);
     }
@@ -293,7 +298,7 @@ const CreateEditShop = () => {
               whileHover={{ scale: 1.01 }}
               whileTap={{ scale: 0.98 }}
               type="submit"
-              className="w-full h-14 rounded-2xl bg-gradient-to-r from-[#ff4d2d] to-orange-500 text-white font-bold text-lg shadow-lg shadow-orange-200 hover:shadow-orange-300 transition-all"
+              className="w-full h-14 rounded-2xl bg-gradient-to-r from-[#ff4d2d] to-orange-500 text-white font-bold text-lg shadow-lg shadow-orange-200 hover:shadow-orange-300 transition-all cursor-pointer"
             >
               {myShopData ? "Update Shop" : "Create Shop"}
             </motion.button>

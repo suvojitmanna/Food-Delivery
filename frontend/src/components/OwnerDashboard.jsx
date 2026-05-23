@@ -3,6 +3,7 @@ import Nav from "./Nav";
 import { useSelector } from "react-redux";
 import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom";
+import OwnerItemCard from "../components/ownerItemCard";
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -100,7 +101,16 @@ const EmptyState = ({ onNavigate }) => (
 
 const Dashboard = ({ shopData, onNavigate }) => {
   const [activeTab, setActiveTab] = React.useState("All items");
-  const tabs = ["All items", "Starters", "Mains", "Desserts"];
+  const tabs = ["All items", "Starters", "Mains", "Dessert"];
+
+  const filteredItems = React.useMemo(() => {
+    if (!shopData.items) return [];
+    if (activeTab === "All items") return shopData.items;
+    
+    return shopData.items.filter(
+      (item) => item.category?.toLowerCase() === activeTab.toLowerCase()
+    );
+  }, [shopData.items, activeTab]);
 
   const stats = [
     {
@@ -147,7 +157,7 @@ const Dashboard = ({ shopData, onNavigate }) => {
         </div>
       </motion.div>
 
-      {/* Stats row - Responsive Grid Fix */}
+      {/* Stats row */}
       <motion.div
         variants={itemVariants}
         className="grid grid-cols-1 sm:grid-cols-3 gap-4"
@@ -162,7 +172,6 @@ const Dashboard = ({ shopData, onNavigate }) => {
         variants={itemVariants}
         className="bg-white rounded-2xl border border-orange-100/70 overflow-hidden shadow-[0_15px_40px_-20px_rgba(0,0,0,0.04)] group"
       >
-        {/* Image */}
         <div className="relative h-48 sm:h-72 overflow-hidden">
           <motion.img
             src={shopData.image}
@@ -171,21 +180,17 @@ const Dashboard = ({ shopData, onNavigate }) => {
             whileHover={{ scale: 1.03 }}
             transition={{ duration: 0.6, ease: "easeOut" }}
           />
-          {/* Gradient overlay */}
           <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent" />
 
-          {/* Banner content - Layout Wrap Fix */}
           <div className="absolute bottom-0 left-0 right-0 p-4 sm:p-8 flex flex-row items-end justify-between gap-4">
             <div className="min-w-0">
               <p className="text-[9px] sm:text-[10px] tracking-widest font-semibold text-orange-200 mb-1 uppercase truncate">
-                {shopData.city ? shopData.city.toUpperCase() : "ACTIVE"} ·
-                PREMIUM
+                {shopData.city ? shopData.city.toUpperCase() : "ACTIVE"} · PREMIUM
               </p>
               <h2 className="font-serif text-xl sm:text-3xl font-black tracking-tight text-white m-0 truncate">
                 {shopData.name}
               </h2>
             </div>
-            {/* Edit button */}
             <motion.button
               whileHover={{
                 backgroundColor: "#ff4d2d",
@@ -202,7 +207,6 @@ const Dashboard = ({ shopData, onNavigate }) => {
           </div>
         </div>
 
-        {/* Footer */}
         <div className="px-4 py-4 sm:px-6 flex items-center justify-between border-t border-gray-50 bg-white">
           <div className="min-w-0">
             <p className="text-[9px] tracking-wider text-gray-400 font-semibold m-0 uppercase">
@@ -217,58 +221,114 @@ const Dashboard = ({ shopData, onNavigate }) => {
 
       {/* Menu section */}
       <motion.div variants={itemVariants} className="pb-12">
-        <p className="text-[10px] tracking-widest text-orange-600/60 font-semibold mb-3 uppercase">
-          MENU MANAGEMENT
+        <p className="text-[10px] tracking-[0.15em] text-orange-600/70 font-semibold mb-4 uppercase select-none">
+          Menu Management
         </p>
 
-        {/* Tabs - Added horizontal scroll engine for small screens */}
-        <div className="flex gap-1 mb-4 overflow-x-auto pb-1 scrollbar-none -mx-4 px-4 sm:mx-0 sm:px-0">
-          {tabs.map((t) => (
-            <button
-              key={t}
-              onClick={() => setActiveTab(t)}
-              className={`px-4 py-2 text-xs rounded-lg cursor-pointer font-sans border-none whitespace-nowrap transition-all duration-200 ${
-                activeTab === t
-                  ? "bg-white text-gray-900 shadow-sm font-medium"
-                  : "bg-transparent text-gray-400 hover:text-gray-600"
-              }`}
-            >
-              {t}
-            </button>
-          ))}
+        {/* Tabs Slider */}
+        <div className="flex gap-1 mb-6 overflow-x-auto pb-1.5 scrollbar-none -mx-4 px-4 sm:mx-0 sm:px-0 border-b border-gray-100/80">
+          {tabs.map((t) => {
+            const isActive = activeTab === t;
+            return (
+              <button
+                key={t}
+                onClick={() => setActiveTab(t)}
+                className={`relative px-4 py-2.5 text-xs rounded-xl cursor-pointer font-sans border-none whitespace-nowrap transition-colors duration-200 ${
+                  isActive
+                    ? "text-gray-900 font-semibold"
+                    : "text-gray-400 hover:text-gray-600 font-medium"
+                }`}
+              >
+                {isActive && (
+                  <motion.div
+                    layoutId="activeTabPill"
+                    className="absolute inset-0 bg-white shadow-sm rounded-xl -z-10 border border-gray-100"
+                    transition={{ type: "spring", stiffness: 380, damping: 30 }}
+                  />
+                )}
+                {t}
+              </button>
+            );
+          })}
         </div>
 
-        {/* Empty menu state */}
-        <AnimatePresence>
-          {(!shopData.items || shopData.items.length === 0) && (
+        {/* Content States */}
+        <AnimatePresence mode="wait">
+          {filteredItems.length === 0 ? (
             <motion.div
-              initial={{ opacity: 0, y: 10 }}
+              key={`empty-${activeTab}`}
+              initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0 }}
-              className="bg-white/60 backdrop-blur-sm border border-dashed border-orange-200 rounded-2xl p-6 sm:p-10 text-center flex flex-col items-center shadow-sm"
+              exit={{ opacity: 0, y: -12 }}
+              transition={{ duration: 0.25, ease: "easeOut" }}
+              className="bg-gradient-to-b from-white to-gray-50/50 backdrop-blur-md border border-dashed border-gray-200 hover:border-orange-200/80 rounded-2xl p-8 sm:p-12 text-center flex flex-col items-center shadow-[0_4px_20px_-4px_rgba(0,0,0,0.02)] transition-colors duration-300"
             >
-              <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-orange-500/5 border border-orange-500/10 flex items-center justify-center mb-4 text-lg sm:text-xl text-[#ff4d2d]">
-                +
+              <div className="w-12 h-12 rounded-2xl bg-orange-50 flex items-center justify-center mb-5 border border-orange-100/50 text-[#ff4d2d]">
+                <svg
+                  className="w-5 h-5"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  strokeWidth={2.5}
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M12 4.5v15m7.5-7.5h-15"
+                  />
+                </svg>
               </div>
-              <h3 className="font-serif text-base sm:text-lg font-bold text-gray-900 mb-1">
-                Your menu is empty
+
+              <h3 className="font-sans text-base font-semibold text-gray-900 mb-1.5 tracking-tight">
+                {activeTab === "All items" 
+                  ? "Your menu is empty" 
+                  : `No items in ${activeTab}`}
               </h3>
-              <p className="text-xs text-gray-500 leading-relaxed max-w-[280px] mx-auto mb-6 font-light">
-                Add your first dish to start receiving orders through the
-                platform.
+              <p className="text-xs text-gray-400 leading-relaxed max-w-[260px] mx-auto mb-6 font-normal">
+                {activeTab === "All items"
+                  ? "Add your first dish to start receiving orders through the platform."
+                  : `You haven't listed any dishes under the ${activeTab.toLowerCase()} category yet.`}
               </p>
+
               <motion.button
                 whileHover={{
-                  borderColor: "#ff4d2d",
-                  color: "#ff4d2d",
-                  backgroundColor: "rgba(255,77,45,0.02)",
+                  scale: 1.02,
+                  boxShadow: "0 4px_12px_rgba(255,77,45,0.08)",
                 }}
-                whileTap={{ scale: 0.97 }}
+                whileTap={{ scale: 0.98 }}
                 onClick={() => onNavigate("/add-item")}
-                className="inline-flex items-center gap-2 bg-transparent text-gray-700 border border-gray-300 rounded-lg px-5 py-2.5 text-xs font-medium cursor-pointer font-sans transition-all duration-200"
+                className="inline-flex items-center gap-2 bg-[#ff4d2d] text-white rounded-xl px-5 py-2.5 text-xs font-semibold cursor-pointer font-sans transition-all duration-200 shadow-sm"
               >
-                Build your menu →
+                Add a dish
+                <svg
+                  className="w-3.5 h-3.5"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  strokeWidth={2.5}
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3"
+                  />
+                </svg>
               </motion.button>
+            </motion.div>
+          ) : (
+            <motion.div
+              key={`grid-${activeTab}`}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="flex flex-col items-center gap-4 w-full max-w-[1600px]" 
+            >
+              {filteredItems.map((item) => (
+                <OwnerItemCard 
+                  data={item} 
+                  key={item.id ?? item._id} 
+                />
+              ))}
             </motion.div>
           )}
         </AnimatePresence>

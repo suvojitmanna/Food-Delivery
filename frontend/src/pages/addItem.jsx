@@ -7,6 +7,8 @@ import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { serverUrl } from "../App";
 import axios from "axios";
+import { setMyShopData } from "../redux/ownerSlice";
+import { useDispatch } from "react-redux";
 
 const CATEGORIES = [
   "Pizza",
@@ -41,6 +43,7 @@ const CATEGORIES = [
 const AddItem = () => {
   const { myShopData } = useSelector((state) => state.owner);
   const navigate = useNavigate();
+  const dispatch = useDispatch();
   const [name, setName] = useState("");
   const [price, setPrice] = useState("");
   const [originalPrice, setOriginalPrice] = useState("");
@@ -96,7 +99,8 @@ const AddItem = () => {
         { withCredentials: true },
       );
 
-      console.log("Dish successfully added:", result.data);
+      dispatch(setMyShopData(result.data.shop));
+      console.log(result)
       navigate("/");
     } catch (error) {
       console.error("Failed to add menu item:", error);
