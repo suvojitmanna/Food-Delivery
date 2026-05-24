@@ -14,6 +14,7 @@ import useGetCity from "./hooks/useGetCity";
 import useGetMyShop from "./hooks/useGetMyShop";
 import AddItem from "./pages/addItem";
 import EditItem from "./pages/editItem";
+import useGetByCity from "./hooks/useGetByCity";
 
 export const serverUrl = import.meta.env.VITE_BASE_URL;
 
@@ -21,6 +22,7 @@ const App = () => {
   useGetCurrentUser();
   useGetCity();
   useGetMyShop();
+  useGetByCity();
   const { userData, loading } = useSelector((state) => state.user);
 
   if (loading) {

@@ -17,7 +17,6 @@ export const createOrEditShop = async (req, res) => {
             categories,
             items,
         } = req.body;
-        // Validation
         if (
             !name ||
             !city ||
@@ -156,6 +155,33 @@ export const getMyShop = async (req, res) => {
         return res.status(500).json({
             success: false,
             message: "Internal Server Error",
+        });
+    }
+};
+
+export const getShopByCity = async (req, res) => {
+    try {
+        const { city } = req.params;
+        const shops = await Shop.find({
+            city: {
+                $regex: city.trim(),
+                $options: "i",
+            },
+        }).populate("items");
+        if (!shops) {
+            return res.status(400).json({
+                message: "shop not found"
+            });
+        }
+        return res.status(200).json({
+            success: true,
+            shops,
+        });
+    } catch (error) {
+        console.log(error);
+        return res.status(500).json({
+            success: false,
+            message: "Server Error",
         });
     }
 };
