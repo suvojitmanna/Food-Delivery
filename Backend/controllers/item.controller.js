@@ -145,7 +145,7 @@ export const editItem = async (req, res) => {
             const uploadedImage =
                 await uploadOnCloudinary(req.file.path);
 
-            imageUrl = uploadedImage.secure_url;
+            imageUrl = uploadedImage;
         }
         // Update item
         item.name = name || item.name;
@@ -197,6 +197,49 @@ export const getSingleItem = async (req, res) => {
         res.status(500).json({
             success: false,
             message: "Server Error",
+        });
+    }
+};
+
+export const deleteItem = async (req, res) => {
+    try {
+        const itemId = req.params.itemId;
+        const item = await Item.findByIdAndDelete(itemId);
+        if (!item) {
+            return res.status(404).json({
+                success: false,
+                message: "Item not found",
+            });
+        }
+        const shop = await Shop.findOne({
+            owner: req.userId,
+        });
+        if (!shop) {
+            return res.status(404).json({
+                success: false,
+                message: "Shop not found",
+            });
+        }
+        shop.items = shop.items.filter(
+            (i) => i.toString() !== item._id.toString()
+        );
+        await shop.save();
+        await shop.populate({
+            path: "items",
+            options: {
+                sort: { createdAt: -1 },
+            },
+        });
+        return res.status(200).json({
+            success: true,
+            message: "Item deleted successfully",
+            shop,
+        });
+    } catch (error) {
+        console.log(error);
+        return res.status(500).json({
+            success: false,
+            message: `Delete item error: ${error.message}`,
         });
     }
 };

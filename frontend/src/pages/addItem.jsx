@@ -100,7 +100,7 @@ const AddItem = () => {
       );
 
       dispatch(setMyShopData(result.data.shop));
-      console.log(result)
+      console.log(result);
       navigate("/");
     } catch (error) {
       console.error("Failed to add menu item:", error);
@@ -108,6 +108,7 @@ const AddItem = () => {
       setLoading(false);
     }
   };
+  const isFormValid = name.trim() && price && category && type && backendImage;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-orange-50 via-white to-orange-100 flex items-center justify-center px-4 py-10 relative overflow-hidden">
@@ -129,7 +130,6 @@ const AddItem = () => {
         </div>
       </motion.div>
 
-      {/* Main Container Card */}
       <motion.div
         initial={{ opacity: 0, y: 35 }}
         animate={{ opacity: 1, y: 0 }}
@@ -137,35 +137,65 @@ const AddItem = () => {
         className="relative z-10 w-full max-w-2xl"
       >
         <div className="bg-white/90 backdrop-blur-xl border border-orange-100 shadow-2xl rounded-[32px] overflow-hidden">
-          {/* Accent Header Banner */}
           <div
-            className="relative px-8 py-10 text-white overflow-hidden bg-cover bg-center"
+            className="relative px-8 py-16 overflow-hidden rounded-[34px] border border-white/10 shadow-[0_20px_80px_rgba(0,0,0,0.12)] group"
             style={{
-              backgroundImage: myShopData?.image
-                ? `linear-gradient(to right, rgba(255, 77, 45, 0.95), rgba(249, 115, 22, 0.85)), url(${myShopData.image})`
-                : "linear-gradient(to right, #ff4d2d, #f97316)",
+              background: myShopData?.image
+                ? `linear-gradient(135deg,rgba(10,10,10,0.82),rgba(24,24,27,0.75),rgba(255,77,45,0.18)),url(${myShopData.image})`
+                : `radial-gradient(circle at top right, rgba(255,77,45,0.22), transparent 35%),radial-gradient(circle at bottom left, rgba(249,115,22,0.15), transparent 30%),linear-gradient(135deg, #18181b 0%, #09090b 100%)`,
+              backgroundSize: "cover",
+              backgroundPosition: "center",
             }}
           >
+            <div className="absolute inset-0 backdrop-blur-[2px]" />
+            <div className="absolute -top-28 -right-20 w-72 h-72 bg-[#ff4d2d]/20 blur-[120px] rounded-full" />
+            <div className="absolute -bottom-28 -left-20 w-72 h-72 bg-orange-500/10 blur-[120px] rounded-full" />
+            <div className="absolute inset-0 opacity-[0.04] bg-[linear-gradient(to_right,#fff_1px,transparent_1px),linear-gradient(to_bottom,#fff_1px,transparent_1px)] bg-[size:28px_28px]" />
+            <div className="absolute inset-0 overflow-hidden">
+              <div className="absolute top-0 -left-[120%] h-full w-[60%] rotate-12 bg-gradient-to-r from-transparent via-white/10 to-transparent blur-2xl group-hover:left-[140%] transition-all duration-[2500ms]" />
+            </div>
             <div className="relative z-10 flex flex-col items-center">
-              <div className="w-24 h-24 rounded-full bg-white/20 border border-white/20 flex items-center justify-center shadow-lg mb-5 overflow-hidden">
-                {myShopData?.image ? (
-                  <img
-                    src={myShopData.image}
-                    alt="Shop Avatar"
-                    className="w-full h-full object-cover"
-                  />
-                ) : (
-                  <FaBowlFood className="w-10 h-10 text-white" />
-                )}
+              {/* avatar */}
+              <div className="relative w-28 h-28 rounded-[28px] p-[1.5px] bg-gradient-to-br from-white/40 via-white/10 to-transparent shadow-[0_10px_40px_rgba(0,0,0,0.25)] mb-6 group-hover:scale-105 transition-all duration-500">
+                <div className="absolute inset-0 rounded-[28px] bg-gradient-to-tr from-[#ff4d2d]/30 to-orange-500/20 opacity-0 group-hover:opacity-100 blur-xl transition-all duration-500" />
+
+                <div className="relative w-full h-full rounded-[26px] overflow-hidden bg-white/10 backdrop-blur-xl border border-white/10 flex items-center justify-center">
+                  {myShopData?.image ? (
+                    <img
+                      src={myShopData.image}
+                      alt="Shop Avatar"
+                      className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+                    />
+                  ) : (
+                    <div className="p-4 rounded-2xl bg-white/10 backdrop-blur-md">
+                      <FaBowlFood className="w-10 h-10 text-white" />
+                    </div>
+                  )}
+                </div>
               </div>
 
-              <h1 className="text-3xl font-extrabold tracking-tight">
+              {/* badge */}
+              <div className="mb-4 px-4 py-1.5 rounded-full border border-white/10 bg-white/5 backdrop-blur-md text-xs uppercase tracking-[0.25em] text-orange-200 font-semibold">
+                Premium Dashboard
+              </div>
+
+              {/* title */}
+              <h1 className="text-4xl sm:text-5xl font-black tracking-tight text-white text-center leading-tight">
                 Add New Item
               </h1>
-              <p className="text-orange-50 text-sm mt-2 text-center">
-                {myShopData?.name
-                  ? `Adding to ${myShopData.name}`
-                  : "Populate your digital storefront with items."}
+
+              {/* subtitle */}
+              <p className="mt-4 text-sm sm:text-base text-zinc-300 text-center max-w-lg leading-relaxed font-medium">
+                {myShopData?.name ? (
+                  <>
+                    Adding luxury dishes to{" "}
+                    <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#ff4d2d] via-orange-400 to-yellow-300 font-bold">
+                      {myShopData.name}
+                    </span>
+                  </>
+                ) : (
+                  "Craft beautiful culinary experiences for your digital restaurant storefront."
+                )}
               </p>
             </div>
           </div>
@@ -338,14 +368,38 @@ const AddItem = () => {
 
             {/* Submit Action */}
             <motion.button
-              whileHover={{ scale: 1.01 }}
-              whileTap={{ scale: 0.98 }}
-              disabled={loading}
+              whileHover={
+                !loading && isFormValid
+                  ? {
+                      scale: 1.01,
+                      boxShadow: "0px 20px 40px rgba(255, 77, 45, 0.25)",
+                    }
+                  : {}
+              }
+              whileTap={!loading && isFormValid ? { scale: 0.98 } : {}}
+              disabled={loading || !isFormValid}
               type="submit"
-              className="w-full h-14 rounded-2xl bg-gradient-to-r from-[#ff4d2d] to-orange-500 text-white font-bold text-lg shadow-lg shadow-orange-200 hover:shadow-orange-300 transition-all flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed cursor-pointer"
+              className={`relative overflow-hidden w-full h-14 rounded-2xl text-white font-bold text-lg transition-all flex items-center justify-center gap-3 
+                ${loading || !isFormValid 
+                  ? "bg-gray-300 cursor-not-allowed" 
+                  : "bg-gradient-to-r from-[#ff4d2d] to-orange-500 shadow-lg shadow-orange-200 hover:shadow-orange-300 cursor-pointer"}`}
             >
-              <FaPlus className="text-sm" />
-              {loading ? "Saving Item..." : "Publish Item to Menu"}
+              {/* shimmer */}
+              {!loading && isFormValid && (
+                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full animate-[shimmer_2s_infinite]" />
+              )}
+
+              {loading ? (
+                <>
+                  <FaPlus className="text-sm animate-spin" />
+                  <span>Publishing Item...</span>
+                </>
+              ) : (
+                <>
+                  <FaPlus className="text-sm" />
+                  <span>Publish Item to Menu</span>
+                </>
+              )}
             </motion.button>
           </form>
         </div>

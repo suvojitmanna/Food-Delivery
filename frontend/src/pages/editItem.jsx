@@ -1,21 +1,23 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { motion } from "framer-motion";
+import { AnimatePresence, motion } from "framer-motion";
 import axios from "axios";
 import { serverUrl } from "../App";
 import { IoArrowBackOutline } from "react-icons/io5";
+import { GrUpdate } from "react-icons/gr";
 import { MdOutlineImage } from "react-icons/md";
+import { useSelector } from "react-redux";
 
 const EditItem = () => {
   const navigate = useNavigate();
   const { itemId } = useParams();
-
+  const { myShopData } = useSelector((state) => state.owner);
   const [name, setName] = useState("");
   const [price, setPrice] = useState("");
   const [category, setCategory] = useState("");
   const [type, setType] = useState("");
   const [description, setDescription] = useState("");
-
+  const [isLoading, setIsLoading] = useState(false);
   const [backendImage, setBackendImage] = useState(null);
   const [frontendImage, setFrontendImage] = useState("");
 
@@ -58,15 +60,20 @@ const EditItem = () => {
     e.preventDefault();
 
     try {
+      setIsLoading(true);
+
       const formData = new FormData();
+
       formData.append("name", name);
       formData.append("price", price);
       formData.append("category", category);
       formData.append("type", type);
       formData.append("description", description);
+
       if (backendImage) {
         formData.append("image", backendImage);
       }
+
       const result = await axios.post(
         `${serverUrl}/api/item/edit-item/${itemId}`,
         formData,
@@ -74,13 +81,17 @@ const EditItem = () => {
           withCredentials: true,
         },
       );
+
       console.log(result.data);
-      navigate("/");
+
+      window.location.href = "/";
     } catch (error) {
       console.log(error);
+    } finally {
+      setIsLoading(false);
     }
   };
-
+  const isFormValid = name.trim() && price && category && type;
   return (
     <div className="min-h-screen bg-gradient-to-br from-orange-50 via-white to-orange-100 flex items-center justify-center px-4 py-10">
       {/* back button */}
@@ -103,12 +114,18 @@ const EditItem = () => {
       >
         <div className="bg-white shadow-2xl rounded-[30px] overflow-hidden border border-orange-100">
           {/* top */}
-          <div className="bg-gradient-to-r from-[#ff4d2d] to-orange-500 px-8 py-8 text-white">
-            <h1 className="text-3xl font-bold">Edit Item</h1>
-
-            <p className="text-sm mt-2 text-orange-50">
-              Update your food item details
-            </p>
+          <div className="relative h-60 overflow-hidden">
+            <img
+              src={myShopData?.image}
+              alt="item"
+              className="w-full h-full object-cover"
+            />
+            <div className="absolute inset-0 bg-black/45 flex flex-col justify-end px-8 py-6 text-white">
+              <h1 className="text-3xl font-bold">Edit Item</h1>
+              <p className="text-sm text-orange-100 mt-2">
+                Update your food item details
+              </p>
+            </div>
           </div>
 
           {/* form */}
@@ -226,12 +243,56 @@ const EditItem = () => {
 
             {/* button */}
             <motion.button
-              whileHover={{ scale: 1.01 }}
-              whileTap={{ scale: 0.98 }}
+              whileHover={
+                !isLoading
+                  ? {
+                      scale: 1.01,
+                      boxShadow: "0px 20px 40px rgba(255, 77, 45, 0.25)",
+                      filter: "brightness(1.04)",
+                    }
+                  : {}
+              }
+              whileTap={!isLoading ? { scale: 0.98 } : {}}
+              transition={{ type: "spring", stiffness: 400, damping: 25 }}
               type="submit"
-              className="w-full h-14 rounded-2xl bg-gradient-to-r from-[#ff4d2d] to-orange-500 text-white font-bold text-lg"
+              disabled={isLoading}
+              className={`relative overflow-hidden w-full h-14 rounded-2xl text-white font-semibold text-base tracking-wide flex items-center justify-center transition-all ${
+                isLoading || !isFormValid
+                  ? "bg-gray-300 cursor-not-allowed"
+                  : "bg-gradient-to-r from-[#ff4d2d] to-orange-500 cursor-pointer shadow-lg shadow-orange-200"
+              }`}
             >
-              Update Item
+              {!isLoading && (
+                <div className="absolute inset-0 w-full h-full bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full animate-[shimmer_2s_infinite]" />
+              )}
+
+              <AnimatePresence mode="wait" initial={false}>
+                {isLoading ? (
+                  <motion.span
+                    key="loading"
+                    initial={{ opacity: 0, y: 12, filter: "blur(4px)" }}
+                    animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+                    exit={{ opacity: 0, y: -12, filter: "blur(4px)" }}
+                    transition={{ duration: 0.2, ease: "easeInOut" }}
+                    className="flex items-center justify-center gap-2.5"
+                  >
+                    <GrUpdate className="text-base animate-spin" />
+                    <span>Updating...</span>
+                  </motion.span>
+                ) : (
+                  <motion.span
+                    key="idle"
+                    initial={{ opacity: 0, y: -12, filter: "blur(4px)" }}
+                    animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+                    exit={{ opacity: 0, y: 12, filter: "blur(4px)" }}
+                    transition={{ duration: 0.2, ease: "easeInOut" }}
+                    className="flex items-center justify-center gap-2.5"
+                  >
+                    <GrUpdate className="text-base" />
+                    <span>Update Item</span>
+                  </motion.span>
+                )}
+              </AnimatePresence>
             </motion.button>
           </form>
         </div>

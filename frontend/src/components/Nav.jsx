@@ -10,6 +10,7 @@ import { serverUrl } from "../App";
 import { setUserData } from "../redux/userSlice";
 import { FaPlus, FaUserCircle } from "react-icons/fa";
 import { TbReceipt2 } from "react-icons/tb";
+import { useNavigate } from "react-router-dom";
 
 const Nav = () => {
   const { userData, city } = useSelector((state) => state.user);
@@ -22,6 +23,7 @@ const Nav = () => {
   const [cartCount, setCartCount] = useState(2);
 
   const dropdownRef = useRef();
+  const navigate = useNavigate();
 
   // Close dropdown on outside click
   useEffect(() => {
@@ -132,57 +134,63 @@ const Nav = () => {
               </motion.button>
             )}
 
-            {/* ORDERS & ACTIONS */}
-            {userData?.role === "owner" ? (
+            {/* ORDERS & ACTIONS (OWNER ONLY IN NAVBAR) */}
+            {userData?.role === "owner" && (
               <>
                 {myShopData && (
                   <motion.button
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
-                    className="flex items-center gap-2 px-4 h-11 bg-[#ff4d2d]/10 border border-gray-200 hover:border-[#ff4d2d] rounded-3xl text-xs font-bold  tracking-wider text-[#ff4d2d] shadow-sm transition-all duration-200 cursor-pointer"
+                    className="flex items-center gap-2 px-4 h-11 bg-[#ff4d2d]/10 border border-gray-200 hover:border-[#ff4d2d] rounded-3xl text-xs font-bold tracking-wider text-[#ff4d2d] shadow-sm transition-all duration-200 cursor-pointer"
+                    onClick={() => navigate("/add-item")}
                   >
-                    <span className="font-semibold text-sm">
-                      Add Food
-                    </span>
+                    <span className="font-semibold text-sm">Add Food</span>
                     <FaPlus size={12} className="stroke-[2]" />
                   </motion.button>
                 )}
 
+                {/* Visible only to Owners on desktop viewports */}
                 <motion.button
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
-                  className="relative flex items-center justify-center md:justify-start gap-2 w-11 md:w-auto h-11 md:px-5 rounded-full md:rounded-3xl border border-gray-200 bg-[#ff4d2d]/10 hover:border-[#ff4d2d] text-[#ff4d2d] transition-all duration-300 font-semibold text-sm cursor-pointer"
+                  className="relative hidden lg:flex items-center gap-2 h-11 px-5 rounded-3xl border border-gray-200 bg-[#ff4d2d]/10 hover:border-[#ff4d2d] text-[#ff4d2d] transition-all duration-300 font-semibold text-sm cursor-pointer"
                 >
                   <TbReceipt2 size={20} className="shrink-0" />
-                  <span className="hidden md:inline">My Orders</span>
+                  <span>My Orders</span>
                   <span className="absolute -top-1 -right-1 bg-[#ff4d2d] text-white text-[10px] font-bold w-5 h-5 rounded-full flex items-center justify-center shadow-lg">
                     0
                   </span>
                 </motion.button>
               </>
-            ) : (
-              <motion.button
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                className="relative flex items-center justify-center md:justify-start gap-2 w-11 md:w-auto h-11 md:px-5 rounded-full md:rounded-3xl border border-gray-200 bg-[#ff4d2d]/10 hover:border-[#ff4d2d] text-[#ff4d2d] transition-all duration-300 font-semibold text-sm cursor-pointer"
-              >
-                <TbReceipt2 size={20} className="shrink-0" />
-                <span className="hidden md:inline">My Orders</span>
-              </motion.button>
             )}
 
             {/* CART */}
             {userData?.role === "user" && (
-              <motion.button
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                className="relative w-11 h-11 rounded-full bg-gray-100 hover:bg-[#ff4d2d]/10 flex items-center justify-center transition-all duration-300 group cursor-pointer"
-              >
-                <TiShoppingCart className="text-2xl text-gray-700 group-hover:text-[#ff4d2d]" />
-                <span className="absolute -top-1 -right-1 bg-[#ff4d2d] text-white text-[11px] font-bold w-5 h-5 rounded-full flex items-center justify-center shadow-lg">
-                  {cartCount}
-                </span>
-              </motion.button>
+              <>
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  className="relative hidden lg:flex items-center gap-2 h-11 px-5 rounded-3xl border border-gray-200 bg-[#ff4d2d]/10 hover:border-[#ff4d2d] text-[#ff4d2d] transition-all duration-300 font-semibold text-sm cursor-pointer"
+                >
+                  <TbReceipt2 size={20} className="shrink-0" />
+                  <span>My Orders</span>
+                  <span className="absolute -top-1 -right-1 bg-[#ff4d2d] text-white text-[10px] font-bold w-5 h-5 rounded-full flex items-center justify-center shadow-lg">
+                    0
+                  </span>
+                </motion.button>
+
+                {/* CART BUTTON - Visible across all screen sizes */}
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  className="relative w-11 h-11 rounded-full bg-gray-100 hover:bg-[#ff4d2d]/10 flex items-center justify-center transition-all duration-300 group cursor-pointer"
+                >
+                  <TiShoppingCart className="text-2xl text-gray-700 group-hover:text-[#ff4d2d]" />
+                  <span className="absolute -top-1 -right-1 bg-[#ff4d2d] text-white text-[11px] font-bold w-5 h-5 rounded-full flex items-center justify-center shadow-lg">
+                    {cartCount}
+                  </span>
+                </motion.button>
+              </>
             )}
 
             {/* USER PROFILE DROPDOWN TRIGGER */}
@@ -277,30 +285,51 @@ const Nav = () => {
                         </motion.div>
                         <span>Account Settings</span>
                       </motion.button>
-
-                      <motion.button
-                        whileHover="hover"
-                        style={{ backgroundColor: "transparent" }}
-                        whileHover={{
-                          backgroundColor: "rgba(249, 250, 251, 1)",
-                        }}
-                        className="md:hidden w-full flex items-center gap-3 px-4 py-3 rounded-2xl transition-all text-sm font-medium text-gray-700 cursor-pointer"
-                      >
-                        <motion.div
-                          variants={{
-                            hover: { y: -2 },
+                      {userData?.role === "user" ? (
+                        <motion.button
+                          whileHover="hover"
+                          style={{ backgroundColor: "transparent" }}
+                          whileHover={{
+                            backgroundColor: "rgba(249, 250, 251, 1)",
                           }}
-                          transition={{
-                            type: "spring",
-                            stiffness: 300,
-                            damping: 15,
-                          }}
-                          className="flex items-center justify-center text-lg"
+                          className="w-full flex sm:hidden items-center gap-3 px-4 py-3 rounded-2xl transition-all text-sm font-medium text-gray-700 cursor-pointer"
                         >
-                          <TbReceipt2 />
-                        </motion.div>
-                        <span>My Orders</span>
-                      </motion.button>
+                          <motion.div
+                            variants={{ hover: { y: -2 } }}
+                            transition={{
+                              type: "spring",
+                              stiffness: 300,
+                              damping: 15,
+                            }}
+                            className="flex items-center justify-center text-lg"
+                          >
+                            <TbReceipt2 />
+                          </motion.div>
+                          <span>My Orders</span>
+                        </motion.button>
+                      ) : (
+                        <motion.button
+                          whileHover="hover"
+                          style={{ backgroundColor: "transparent" }}
+                          whileHover={{
+                            backgroundColor: "rgba(249, 250, 251, 1)",
+                          }}
+                          className="md:hidden w-full flex items-center gap-3 px-4 py-3 rounded-2xl transition-all text-sm font-medium text-gray-700 cursor-pointer"
+                        >
+                          <motion.div
+                            variants={{ hover: { y: -2 } }}
+                            transition={{
+                              type: "spring",
+                              stiffness: 300,
+                              damping: 15,
+                            }}
+                            className="flex items-center justify-center text-lg"
+                          >
+                            <TbReceipt2 />
+                          </motion.div>
+                          <span>My Orders</span>
+                        </motion.button>
+                      )}
 
                       <motion.button
                         whileHover="hover"
@@ -318,7 +347,9 @@ const Nav = () => {
                           }}
                           className="flex items-center justify-center"
                         >
-                          <MdLogout className="text-lg" />
+                          <motion.div className="text-lg">
+                            <MdLogout />
+                          </motion.div>
                         </motion.div>
                         Logout
                       </motion.button>

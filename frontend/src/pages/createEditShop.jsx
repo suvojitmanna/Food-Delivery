@@ -5,10 +5,11 @@ import { HiOutlineLocationMarker } from "react-icons/hi";
 import { MdOutlineImage } from "react-icons/md";
 import { useDispatch, useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
-import { motion } from "framer-motion";
+import { AnimatePresence, motion } from "framer-motion";
 import { serverUrl } from "../App";
 import axios from "axios";
 import { setMyShopData } from "../redux/ownerSlice";
+import { GrUpdate } from "react-icons/gr";
 
 const CreateEditShop = () => {
   const { myShopData } = useSelector((state) => state.owner);
@@ -23,6 +24,7 @@ const CreateEditShop = () => {
   const [description, setDescription] = useState(myShopData?.description || "");
   const [backendImage, setBackendImage] = useState(null);
   const [frontendImage, setFrontendImage] = useState(myShopData?.image || null);
+  const [isLoading,setIsLoading] = useState(false)
 
   useEffect(() => {
     if (!myShopData && city) {
@@ -59,7 +61,7 @@ const CreateEditShop = () => {
   // submit
   const handleSubmit = async (e) => {
     e.preventDefault();
-
+    setIsLoading(true)
     try {
       const formData = new FormData();
 
@@ -82,10 +84,11 @@ const CreateEditShop = () => {
       );
 
       dispatch(setMyShopData(result.data.shop));
-
+      setIsLoading(false)
       navigate("/");
     } catch (error) {
       console.log(error);
+      setIsLoading(false)
     }
   };
 
@@ -295,13 +298,59 @@ const CreateEditShop = () => {
 
             {/* submit button */}
             <motion.button
-              whileHover={{ scale: 1.01 }}
-              whileTap={{ scale: 0.98 }}
-              type="submit"
-              className="w-full h-14 rounded-2xl bg-gradient-to-r from-[#ff4d2d] to-orange-500 text-white font-bold text-lg shadow-lg shadow-orange-200 hover:shadow-orange-300 transition-all cursor-pointer"
-            >
-              {myShopData ? "Update Shop" : "Create Shop"}
-            </motion.button>
+  whileHover={
+    !isLoading
+      ? {
+          scale: 1.01,
+          boxShadow: "0px 20px 40px rgba(255, 77, 45, 0.25)",
+          filter: "brightness(1.04)",
+        }
+      : {}
+  }
+  whileTap={!isLoading ? { scale: 0.98 } : {}}
+  transition={{ type: "spring", stiffness: 400, damping: 25 }}
+  type="submit"
+  disabled={isLoading}
+  className="relative overflow-hidden w-full h-14 rounded-2xl bg-gradient-to-r from-[#ff4d2d] to-orange-500 text-white font-semibold text-base tracking-wide flex items-center justify-center cursor-pointer disabled:opacity-80 disabled:cursor-not-allowed"
+>
+  {/* shimmer effect */}
+  {!isLoading && (
+    <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full animate-[shimmer_2s_infinite]" />
+  )}
+
+  <AnimatePresence mode="wait" initial={false}>
+    {isLoading ? (
+      <motion.span
+        key="loading"
+        initial={{ opacity: 0, y: 12, filter: "blur(4px)" }}
+        animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+        exit={{ opacity: 0, y: -12, filter: "blur(4px)" }}
+        transition={{ duration: 0.2 }}
+        className="flex items-center gap-2"
+      >
+        <GrUpdate className="animate-spin text-lg" />
+        <span>
+          {myShopData ? "Updating..." : "Creating..."}
+        </span>
+      </motion.span>
+    ) : (
+      <motion.span
+        key="idle"
+        initial={{ opacity: 0, y: -12, filter: "blur(4px)" }}
+        animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+        exit={{ opacity: 0, y: 12, filter: "blur(4px)" }}
+        transition={{ duration: 0.2 }}
+        className="flex items-center gap-2"
+      >
+        <GrUpdate className="text-lg" />
+
+        <span>
+          {myShopData ? "Update Shop" : "Create Shop"}
+        </span>
+      </motion.span>
+    )}
+  </AnimatePresence>
+</motion.button>
           </form>
         </div>
       </motion.div>
