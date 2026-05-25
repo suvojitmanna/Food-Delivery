@@ -243,3 +243,42 @@ export const deleteItem = async (req, res) => {
         });
     }
 };
+
+export const getItemByCity = async (req, res) => {
+    try {
+        const { city } = req.params;
+        if (!city) {
+            return res.status(400).json({
+                success: false,
+                message: "City is required",
+            });
+        }
+        const shops = await Shop.find({
+            city: {
+                $regex: city.trim(),
+                $options: "i",
+            },
+        });
+        if (!shops.length) {
+            return res.status(404).json({
+                success: false,
+                message: "No shops found in this city",
+            });
+        }
+        const shopIds = shops.map((shop) => shop._id);
+        const items = await Item.find({
+            shop: { $in: shopIds },
+        }).populate("shop");
+        return res.status(200).json({
+            success: true,
+            total: items.length,
+            items,
+        });
+    } catch (error) {
+        console.log("Get Item By City Error:", error);
+        return res.status(500).json({
+            success: false,
+            message: "Internal server error",
+        });
+    }
+};

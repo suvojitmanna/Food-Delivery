@@ -24,7 +24,6 @@ const useGetByCity = () => {
             withCredentials: true,
           },
         );
-        console.log(result.data.shops);
         dispatch(setShopInMyCity(result.data.shops));
       } catch (error) {
         console.log(error);

@@ -15,6 +15,10 @@ import useGetMyShop from "./hooks/useGetMyShop";
 import AddItem from "./pages/addItem";
 import EditItem from "./pages/editItem";
 import useGetByCity from "./hooks/useGetByCity";
+import useGetItemByCity from "./hooks/useGetItemByCity";
+import AllRestaurantCard from "./components/AllRestunantcard";
+import MenuCard from "./components/menuCard";
+import FoodCard from "./components/foodCard";
 
 export const serverUrl = import.meta.env.VITE_BASE_URL;
 
@@ -23,7 +27,9 @@ const App = () => {
   useGetCity();
   useGetMyShop();
   useGetByCity();
-  const { userData, loading } = useSelector((state) => state.user);
+  const { userData, loading, city } = useSelector((state) => state.user);
+
+  useGetItemByCity(city?.city);
 
   if (loading) {
     return (
@@ -97,6 +103,16 @@ const App = () => {
           path="/edit-item/:itemId"
           element={userData ? <EditItem /> : <Navigate to="/signin" />}
         />
+        <Route
+          path="/all-restaurants"
+          element={userData ? <AllRestaurantCard /> : <Navigate to="/signin" />}
+        />
+        <Route
+  path="/menu/:id"
+  element={
+    userData ? <MenuCard /> : <Navigate to="/signin" />
+  }
+/>
       </Routes>
 
       <Toaster position="top-right" reverseOrder={false} />

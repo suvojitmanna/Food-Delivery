@@ -9,11 +9,19 @@ import {
   FiStar,
   FiArrowRight,
   FiMapPin,
+  FiFilter,
+  FiZap,
+  FiAward,
+  FiTrendingUp,
+  FiDollarSign,
+  FiMoon,
+  FiChevronDown,
+  FiCheck,
 } from "react-icons/fi";
 import { motion, AnimatePresence } from "framer-motion";
 import { useSelector } from "react-redux";
 import { campaignCards } from "./offerCard.js";
-
+import { useNavigate } from "react-router-dom";
 const dashboardVariants = {
   hidden: { opacity: 0 },
   show: {
@@ -33,19 +41,68 @@ const itemFadeVariants = {
 
 const UserDashboard = () => {
   const scrollContainerRef = useRef(null);
-
+  const navigate = useNavigate();
   const userState = useSelector((state) => state.user);
   const city = userState?.city?.city || userState?.city || "your city";
   const municipality = userState?.city?.municipality || "your city";
   if (!city) return null;
   const shops = userState?.shopInMyCity || [];
   const cards = campaignCards(city);
-
-  // duplicate for infinite slider
   const marqueeCards = [...cards, ...cards];
-
   const [showLeftArrow, setShowLeftArrow] = useState(false);
   const [showRightArrow, setShowRightArrow] = useState(true);
+  const [selectedCategory, setSelectedCategory] = useState("All");
+  const [selectedSort, setSelectedSort] = useState("Top Rated");
+  const [showSortDropdown, setShowSortDropdown] = useState(false);
+  const [loading, setLoading] = useState(true);
+
+  const dropdownRef = useRef(null);
+  // ================= SORT OPTIONS =================
+  const sortOptions = [
+    "Top Rated",
+    "Fast Delivery",
+    "Newest",
+    "A-Z",
+    "Ratting",
+  ];
+
+  const allCategories = [
+    "All",
+    ...new Set(
+      shops.flatMap(
+        (shop) => shop.categories || ["Chinese", "Biryani", "Pizza", "Burgers"],
+      ),
+    ),
+  ];
+  let filteredShops =
+    selectedCategory === "All"
+      ? [...shops]
+      : shops.filter((shop) =>
+          (shop.categories || []).includes(selectedCategory),
+        );
+
+  switch (selectedSort) {
+    case "Top Rated":
+      filteredShops.sort((a, b) => (b.rating || 4.5) - (a.rating || 4.5));
+      break;
+
+    case "Fast Delivery":
+      filteredShops.sort(
+        (a, b) => (a.deliveryTime || 30) - (b.deliveryTime || 30),
+      );
+      break;
+
+    case "A-Z":
+      filteredShops.sort((a, b) => a.name.localeCompare(b.name));
+      break;
+
+    case "Newest":
+      filteredShops.reverse();
+      break;
+
+    default:
+      break;
+  }
 
   const checkScrollBounds = () => {
     if (scrollContainerRef.current) {
@@ -76,6 +133,27 @@ const UserDashboard = () => {
     return () => {
       container.removeEventListener("scroll", checkScrollBounds);
       container.removeEventListener("wheel", handleWheelScroll);
+    };
+  }, []);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setLoading(false);
+    }, 2000);
+
+    return () => clearTimeout(timer);
+  }, []);
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setShowSortDropdown(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
     };
   }, []);
 
@@ -371,96 +449,318 @@ const UserDashboard = () => {
         </motion.section>
 
         {/* ================= SECTION 3: RESTAURANT DYNAMIC LISTING ================= */}
-        <section className="flex flex-col gap-8 w-full">
+
+        <section className="flex flex-col gap-16 w-full">
+          {/* ================= HEADER ================= */}
           <motion.div
             variants={itemFadeVariants}
-            className="flex flex-col gap-1.5"
+            className="flex flex-col xl:flex-row xl:items-center xl:justify-between gap-7"
           >
-            <span className="text-[11px] tracking-[0.25em] text-orange-600 font-bold uppercase flex items-center gap-1.5">
-              <FiMapPin className="text-xs" /> Gastronomy Hub
-            </span>
-            <h2 className="font-serif text-3xl sm:text-4xl font-extrabold tracking-tight text-slate-900 m-0">
-              Popular dining destinations in{" "}
-              <span className="text-[#ff4d2d] underline ">{municipality}</span>
-            </h2>
+            {/* LEFT CONTENT */}
+            <div className="flex flex-col gap-3 max-w-3xl">
+              <span className="w-fit px-4 py-2 rounded-full bg-orange-50 border border-orange-100 text-[11px] tracking-[0.28em] text-orange-600 font-black uppercase flex items-center gap-2">
+                <FiMapPin className="text-sm" />
+                Food Discovery Platform
+              </span>
+
+              <h2 className="font-serif text-3xl sm:text-4xl lg:text-5xl font-black tracking-tight text-slate-900 leading-[1.1]">
+                Restaurants with online food delivery in{" "}
+                <span className="text-[#ff4d2d] relative inline-block">
+                  {municipality}
+                  <span className="absolute left-0 bottom-1 w-full h-[6px] bg-orange-200/70 rounded-full -z-10" />
+                </span>
+              </h2>
+
+              <p className="text-slate-500 text-sm sm:text-base font-medium">
+                Discover premium restaurants, lightning-fast delivery and
+                trending food experiences near you.
+              </p>
+            </div>
+
+            {/* RIGHT SECTION */}
+            <div className="flex flex-col gap-4">
+              {/* FILTERS */}
+              <div className="flex flex-wrap gap-3">
+                {/* SORT BUTTON */}
+                <div className="relative">
+                  <button
+                    onClick={() => setShowSortDropdown(!showSortDropdown)}
+                    className="px-5 py-2.5 rounded-2xl bg-slate-900 text-white text-sm font-bold flex items-center gap-2 shadow-lg"
+                  >
+                    <FiFilter />
+                    {selectedSort}
+                    <FiChevronDown
+                      className={`transition-transform duration-300 ${
+                        showSortDropdown ? "rotate-180" : ""
+                      }`}
+                    />
+                  </button>
+
+                  {/* DROPDOWN */}
+                  <AnimatePresence>
+                    {showSortDropdown && (
+                      <motion.div
+                        initial={{ opacity: 0, y: 12 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: 12 }}
+                        transition={{ duration: 0.2 }}
+                        className="absolute right-0 mt-3 w-64 bg-white border border-stone-200 rounded-3xl shadow-[0_20px_60px_rgba(0,0,0,0.12)] overflow-hidden z-50"ref={dropdownRef}
+                      >
+                        <div className="p-3">
+                          <div className="px-3 py-2">
+                            <h4 className="text-sm font-black text-slate-900">
+                              Sort Restaurants
+                            </h4>
+
+                            <p className="text-xs text-slate-500 mt-1">
+                              Choose your preferred sorting
+                            </p>
+                          </div>
+
+                          <div className="mt-2 flex flex-col gap-1">
+                            {sortOptions.map((option, idx) => (
+                              <button
+                                key={idx}
+                                onClick={() => {
+                                  setSelectedSort(option);
+                                  setShowSortDropdown(false);
+                                }}
+                                className={`flex items-center justify-between px-4 py-3 rounded-2xl text-sm font-bold transition-all duration-200 cursor-pointer
+                        ${
+                          selectedSort === option
+                            ? "bg-orange-50 text-orange-600"
+                            : "text-slate-700 hover:bg-slate-100"
+                        }`}
+                              >
+                                {option}
+
+                                {selectedSort === option && (
+                                  <FiCheck className="text-base" />
+                                )}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
+              </div>
+            </div>
           </motion.div>
 
-          {/* Grid Layout Controller */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {shops.length > 0
-              ? shops.map((shop) => (
-                  <motion.div
-                    key={shop._id}
-                    variants={itemFadeVariants}
-                    whileHover={{ y: -8 }}
-                    className="group bg-white rounded-[32px] overflow-hidden border border-stone-200/50 shadow-[0_15px_45px_-20px_rgba(0,0,0,0.05)] hover:shadow-[0_30px_60px_-15px_rgba(234,88,12,0.12)] hover:border-orange-100 transition-all duration-500 cursor-pointer flex flex-col justify-between h-full"
-                  >
-                    {/* Card Media Wrapper */}
-                    <div className="relative h-[240px] overflow-hidden">
-                      <img
-                        src={shop.image}
-                        alt={shop.name}
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 ease-out"
-                      />
-                      {/* Dark Elegant Image Overlay Gradient */}
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-90" />
+          {/* ================= CATEGORY LIST ================= */}
+          {[
+            {
+              title: `Top restaurant chains in ${municipality}`,
+              icon: <FiAward />,
+              data: [...filteredShops]
+                .sort((a, b) => (b.rating || 4.5) - (a.rating || 4.5))
+                .slice(0, 8),
+            },
 
-                      {/* Float Rating Badge */}
-                      <div className="absolute top-4 right-4 bg-white/90 backdrop-blur-md rounded-2xl px-3 py-1.5 shadow-md border border-white flex items-center gap-1">
-                        <FiStar className="text-amber-500 text-xs fill-amber-500" />
-                        <span className="text-xs font-black text-slate-900">
-                          {shop.rating || "4.5"}
-                        </span>
-                      </div>
+            {
+              title: `Fast delivery restaurants in ${municipality}`,
+              icon: <FiZap />,
+              data: [...filteredShops]
+                .sort((a, b) => (a.deliveryTime || 30) - (b.deliveryTime || 30))
+                .slice(0, 8),
+            },
 
-                      {/* Bottom Metadata inside Image */}
-                      <div className="absolute bottom-5 left-6 right-6">
-                        <span className="text-[10px] uppercase tracking-[0.2em] text-orange-400 font-extrabold block mb-1">
-                          {shop.city || city}
-                        </span>
-                        <h3 className="text-2xl font-serif font-black text-white leading-tight m-0">
-                          {shop.name}
-                        </h3>
+            {
+              title: `Trending restaurants in ${municipality}`,
+              icon: <FiTrendingUp />,
+              data: [...filteredShops].slice(0, 8),
+            },
+
+            {
+              title: `Luxury dining & premium brands`,
+              icon: <FiStar />,
+              data: [...filteredShops]
+                .sort((a, b) => (b.rating || 4.5) - (a.rating || 4.5))
+                .slice(0, 8),
+            },
+
+            {
+              title: `Best budget-friendly restaurants`,
+              icon: <FiDollarSign />,
+              data: [...filteredShops].slice(0, 8),
+            },
+
+            {
+              title: `Late night delivery spots`,
+              icon: <FiMoon />,
+              data: [...filteredShops].slice(0, 8),
+            },
+          ].map((category, sectionIndex) => (
+            <motion.div
+              key={sectionIndex}
+              variants={itemFadeVariants}
+              className="flex flex-col gap-8"
+            >
+              {/* SECTION HEADER */}
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-11 h-11 rounded-2xl bg-orange-100 flex items-center justify-center text-orange-600 text-lg">
+                    {category.icon}
+                  </div>
+
+                  <div>
+                    <h3 className="text-2xl sm:text-3xl font-black text-slate-900">
+                      {category.title}
+                    </h3>
+
+                    <p className="text-sm text-slate-500">
+                      Discover handpicked restaurants & curated dining
+                      experiences
+                    </p>
+                  </div>
+                </div>
+
+                <button
+                  className="hidden sm:flex items-center gap-2 text-sm font-bold text-orange-600 hover:text-slate-900 transition-all"
+                  onClick={() => navigate("/all-restaurants")}
+                >
+                  View All
+                  <FiArrowRight />
+                </button>
+              </div>
+
+              {/* RESTAURANT GRID */}
+              {loading ? (
+                <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-8">
+                  {[...Array(8)].map((_, index) => (
+                    <div
+                      key={index}
+                      className="bg-white rounded-[32px] overflow-hidden border border-stone-200/50 shadow-[0_15px_45px_-20px_rgba(0,0,0,0.06)] animate-pulse"
+                    >
+                      {/* IMAGE SKELETON */}
+                      <div className="h-[230px] bg-gradient-to-r from-stone-200 via-stone-100 to-stone-200 bg-[length:200%_100%] animate-[shimmer_2s_infinite]" />
+
+                      {/* CONTENT */}
+                      <div className="p-6 flex flex-col gap-5">
+                        {/* CATEGORY */}
+                        <div className="flex gap-2 flex-wrap">
+                          {[...Array(3)].map((_, i) => (
+                            <div
+                              key={i}
+                              className="h-7 w-20 rounded-full bg-stone-200"
+                            />
+                          ))}
+                        </div>
+
+                        {/* TITLE */}
+                        <div className="flex flex-col gap-3">
+                          <div className="h-5 w-3/4 rounded-xl bg-stone-200" />
+
+                          <div className="h-4 w-full rounded-xl bg-stone-100" />
+
+                          <div className="h-4 w-5/6 rounded-xl bg-stone-100" />
+                        </div>
+
+                        {/* FOOTER */}
+                        <div className="flex items-center justify-between pt-4 border-t border-stone-100">
+                          <div className="h-10 w-24 rounded-2xl bg-stone-200" />
+
+                          <div className="h-11 w-28 rounded-2xl bg-stone-300" />
+                        </div>
                       </div>
                     </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 p-4">
+                  {category.data.map((shop) => (
+                    <motion.div
+                      key={shop._id}
+                      initial={{ opacity: 0, y: 30 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.4, ease: "easeOut" }}
+                      whileHover={{ y: -6 }}
+                      className="group bg-white rounded-3xl overflow-hidden border border-slate-100 shadow-[0_8px_30px_rgb(0,0,0,0.02)] hover:shadow-[0_20px_40px_rgba(15,23,42,0.08)] transition-all duration-300 cursor-pointer flex flex-col h-full"
+                    >
+                      {/* IMAGE */}
+                      <div className="relative aspect-[4/3] overflow-hidden bg-slate-100">
+                        <img
+                          src={shop.image}
+                          alt={shop.name}
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 ease-out"
+                        />
 
-                    {/* Card Info Content */}
-                    <div className="p-6 flex flex-col justify-between flex-grow gap-5">
-                      <p className="text-sm text-slate-500 leading-relaxed line-clamp-2 font-normal m-0">
-                        {shop.description ||
-                          "Indulge in artisanal culinary items and unique menus sourced directly from regional creators."}
-                      </p>
+                        {/* SOFT GRADIENT SCRIM */}
+                        <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-slate-950/20 to-transparent" />
 
-                      <div className="flex items-center justify-between border-t border-stone-100 pt-4 mt-auto">
-                        <div className="flex items-center gap-1.5 text-slate-600 bg-stone-50 px-3 py-1.5 rounded-xl border border-stone-100/80">
-                          <FiClock className="text-xs text-orange-500" />
-                          <span className="text-xs font-bold">
-                            {shop.deliveryTime || 30} mins
+                        {/* RATING */}
+                        <div className="absolute top-3 right-3 bg-white/80 backdrop-blur-md rounded-xl px-2.5 py-1 shadow-sm flex items-center gap-1 border border-white/20">
+                          <FiStar className="text-amber-500 fill-amber-500 text-xs" />
+                          <span className="text-xs font-bold text-slate-800">
+                            {shop.rating || "4.5"}
                           </span>
                         </div>
 
-                        <button className="relative overflow-hidden group/btn bg-slate-900 hover:bg-orange-600 text-white rounded-xl px-5 py-2.5 text-xs font-bold transition-all duration-300 shadow-sm flex items-center gap-1.5 border-none cursor-pointer">
-                          <span>View Menu</span>
-                          <FiArrowRight className="text-sm transition-transform duration-300 group-hover/btn:translate-x-1" />
-                        </button>
+                        {/* BOTTOM INFO */}
+                        <div className="absolute bottom-4 left-4 right-4">
+                          <span className="text-[10px] uppercase tracking-widest text-orange-400 font-bold block mb-1">
+                            {shop.city || municipality}
+                          </span>
+
+                          <h3 className="text-xl font-bold text-white tracking-tight leading-tight line-clamp-1">
+                            {shop.name}
+                          </h3>
+                        </div>
                       </div>
-                    </div>
-                  </motion.div>
-                ))
-              : Array.from({ length: 3 }).map((_, idx) => (
-                  <div
-                    key={idx}
-                    className="w-full bg-white rounded-[32px] border border-stone-200/40 p-5 space-y-5 animate-pulse"
-                  >
-                    <div className="w-full h-48 bg-stone-100 rounded-[24px]" />
-                    <div className="space-y-3 px-2">
-                      <div className="w-1/3 h-3.5 bg-stone-100 rounded-full" />
-                      <div className="w-3/4 h-6 bg-stone-200 rounded-full" />
-                      <div className="w-full h-4 bg-stone-100 rounded-full" />
-                    </div>
-                  </div>
-                ))}
-          </div>
+
+                      {/* CONTENT */}
+                      <div className="p-5 flex flex-col flex-grow justify-between gap-4">
+                        <div className="space-y-3">
+                          {/* CATEGORIES */}
+                          <div className="flex flex-wrap gap-1.5">
+                            {(
+                              shop.categories || [
+                                "Chinese",
+                                "Biryani",
+                                "Burgers",
+                              ]
+                            )
+                              .slice(0, 3)
+                              .map((cat, i) => (
+                                <span
+                                  key={i}
+                                  className="px-2.5 py-0.5 rounded-lg bg-slate-50 text-slate-600 text-[11px] font-medium border border-slate-100"
+                                >
+                                  {cat}
+                                </span>
+                              ))}
+                          </div>
+
+                          {/* DESCRIPTION */}
+                          <p className="text-xs text-slate-500 leading-relaxed line-clamp-2 font-medium">
+                            {shop.description ||
+                              "Premium handcrafted meals with fast delivery and signature culinary experiences."}
+                          </p>
+                        </div>
+
+                        {/* DELIVERY & CTA */}
+                        <div className="flex items-center justify-between pt-3 border-t border-slate-50 mt-auto">
+                          <div className="flex items-center gap-1.5 text-slate-600">
+                            <FiClock className="text-slate-400 text-xs" />
+                            <span className="text-xs font-semibold">
+                              {shop.deliveryTime || 30} mins
+                            </span>
+                          </div>
+
+                          <button className="inline-flex items-center gap-1.5 bg-slate-900 hover:bg-orange-600 text-white rounded-xl px-4 py-2.5 text-xs font-semibold transition-colors duration-300 group/btn" onClick={() => navigate(`/menu/${shop._id}`)}>
+                            View Menu
+                            <FiArrowRight className="transition-transform duration-300 group-hover/btn:translate-x-1" />
+                          </button>
+                        </div>
+                      </div>
+                    </motion.div>
+                  ))}
+                </div>
+              )}
+            </motion.div>
+          ))}
         </section>
       </motion.main>
     </div>

@@ -1,9 +1,7 @@
 import { useEffect } from "react";
 import axios from "axios";
 import { useDispatch } from "react-redux";
-
 import { setLoading, setMyShopData } from "../redux/ownerSlice";
-
 import { serverUrl } from "../App";
 
 const useGetMyShop = () => {
@@ -18,9 +16,7 @@ const useGetMyShop = () => {
           withCredentials: true,
         });
 
-        if (result.data.success) {
-          dispatch(setMyShopData(result.data.shop));
-        }
+        dispatch(setMyShopData(result.data.shop || null));
       } catch (error) {
         console.log(
           "Get My Shop Error:",
