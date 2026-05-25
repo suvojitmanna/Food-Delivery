@@ -5,33 +5,67 @@ const userSlice = createSlice({
 
     initialState: {
         userData: null,
-        loading: false,
+
+        userLoading: false,
+        cityLoading: false,
+        shopLoading: false,
+        itemLoading: false,
+
         city: null,
         shopInMyCity: null,
-        itemsInMyCity:null
+        itemsInMyCity: null,
     },
 
     reducers: {
-
         setUserData: (state, action) => {
             state.userData = action.payload;
         },
 
-        setLoading: (state, action) => {
-            state.loading = action.payload;
+        // ================= LOADERS =================
+
+        setUserLoading: (state, action) => {
+            state.userLoading = action.payload;
         },
+
+        setCityLoading: (state, action) => {
+            state.cityLoading = action.payload;
+        },
+
+        setShopLoading: (state, action) => {
+            state.shopLoading = action.payload;
+        },
+
+        setItemLoading: (state, action) => {
+            state.itemLoading = action.payload;
+        },
+
+        // ================= DATA =================
+
         setCity: (state, action) => {
-            state.city = action.payload
+            state.city = action.payload;
         },
+
         setShopInMyCity: (state, action) => {
-            state.shopInMyCity = action.payload
+            state.shopInMyCity = action.payload;
         },
+
         setItemsInMyCity: (state, action) => {
-            state.itemsInMyCity = action.payload
+            state.itemsInMyCity = action.payload;
         },
-    }
+    },
 });
 
-export const { setUserData, setLoading, setCity, setShopInMyCity,setItemsInMyCity } = userSlice.actions;
+export const {
+    setUserData,
+
+    setUserLoading,
+    setCityLoading,
+    setShopLoading,
+    setItemLoading,
+
+    setCity,
+    setShopInMyCity,
+    setItemsInMyCity,
+} = userSlice.actions;
 
 export default userSlice.reducer;

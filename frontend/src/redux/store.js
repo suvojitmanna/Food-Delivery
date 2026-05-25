@@ -5,40 +5,37 @@ import ownerslice from "./ownerSlice";
 import storage from "redux-persist/lib/storage";
 
 import {
-    persistReducer,
-    persistStore,
+  persistStore,
+  persistReducer,
 } from "redux-persist";
 
-const userPersistConfig = {
-    key: "user",
-    storage: storage.default,
-};
+console.log(storage);
 
-const ownerPersistConfig = {
-    key: "owner",
-    storage: storage.default,
+const persistConfig = {
+  key: "root",
+  storage: storage.default || storage,
 };
 
 const persistedUserReducer = persistReducer(
-    userPersistConfig,
-    userSlice
+  persistConfig,
+  userSlice
 );
 
 const persistedOwnerReducer = persistReducer(
-    ownerPersistConfig,
-    ownerslice
+  persistConfig,
+  ownerslice
 );
 
 export const store = configureStore({
-    reducer: {
-        user: persistedUserReducer,
-        owner: persistedOwnerReducer,
-    },
+  reducer: {
+    user: persistedUserReducer,
+    owner: persistedOwnerReducer,
+  },
 
-    middleware: (getDefaultMiddleware) =>
-        getDefaultMiddleware({
-            serializableCheck: false,
-        }),
+  middleware: (getDefaultMiddleware) =>
+    getDefaultMiddleware({
+      serializableCheck: false,
+    }),
 });
 
 export const persistor = persistStore(store);

@@ -1,7 +1,7 @@
 import { useEffect } from "react";
 import axios from "axios";
 import { useDispatch } from "react-redux";
-import { setLoading, setUserData } from "../redux/userSlice";
+import { setUserLoading, setUserData } from "../redux/userSlice";
 import { serverUrl } from "../App";
 
 const useGetCurrentUser = () => {
@@ -9,6 +9,7 @@ const useGetCurrentUser = () => {
 
   useEffect(() => {
     const fetchCurrentUser = async () => {
+      dispatch(setUserLoading(true));
       try {
         const result = await axios.get(`${serverUrl}/api/user/current`, {
           withCredentials: true,
@@ -18,7 +19,7 @@ const useGetCurrentUser = () => {
         console.log(error);
         dispatch(setUserData(null));
       } finally {
-        dispatch(setLoading(false));
+        dispatch(setUserLoading(false));
       }
     };
     fetchCurrentUser();

@@ -45,7 +45,6 @@ const UserDashboard = () => {
   const userState = useSelector((state) => state.user);
   const city = userState?.city?.city || userState?.city || "your city";
   const municipality = userState?.city?.municipality || "your city";
-  if (!city) return null;
   const shops = userState?.shopInMyCity || [];
   const cards = campaignCards(city);
   const marqueeCards = [...cards, ...cards];
@@ -54,9 +53,13 @@ const UserDashboard = () => {
   const [selectedCategory, setSelectedCategory] = useState("All");
   const [selectedSort, setSelectedSort] = useState("Top Rated");
   const [showSortDropdown, setShowSortDropdown] = useState(false);
-  const [loading, setLoading] = useState(true);
   const dropdownRef = useRef(null);
 
+  const [hydrated, setHydrated] = useState(false);
+
+  useEffect(() => {
+    setHydrated(true);
+  }, []);
   // ================= SORT OPTIONS =================
   const sortOptions = [
     "Top Rated",
@@ -69,14 +72,14 @@ const UserDashboard = () => {
   const allCategories = [
     "All",
     ...new Set(
-      shops.flatMap(
+      (shops || []).flatMap(
         (shop) => shop.categories || ["Chinese", "Biryani", "Pizza", "Burgers"],
       ),
     ),
   ];
   let filteredShops =
     selectedCategory === "All"
-      ? [...shops]
+      ? [...(shops || [])]
       : shops.filter((shop) =>
           (shop.categories || []).includes(selectedCategory),
         );
@@ -137,14 +140,6 @@ const UserDashboard = () => {
   }, []);
 
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setLoading(false);
-    }, 2000);
-
-    return () => clearTimeout(timer);
-  }, []);
-  
-  useEffect(() => {
     const handleClickOutside = (event) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
         setShowSortDropdown(false);
@@ -172,12 +167,14 @@ const UserDashboard = () => {
       });
     }
   };
-
+  // AFTER ALL HOOKS
+  if (!hydrated || !city) return null;
   return (
     <div className="w-full min-h-screen bg-[#faf9f6] flex flex-col items-center antialiased text-slate-800 font-sans pb-24 overflow-x-hidden selection:bg-orange-100 selection:text-orange-600">
       <Nav />
 
       <motion.main
+        initial={false}
         variants={dashboardVariants}
         animate="show"
         className="w-full max-w-7xl flex flex-col gap-16 px-4 sm:px-8 md:px-12 pt-8 sm:pt-16 select-none"
@@ -324,7 +321,7 @@ const UserDashboard = () => {
             <AnimatePresence>
               {showLeftArrow && (
                 <motion.button
-                  initial={{ opacity: 0, scale: 0.8, x: -5 }}
+                  initial={false}
                   animate={{ opacity: 1, scale: 1, x: 0 }}
                   exit={{ opacity: 0, scale: 0.8, x: -5 }}
                   whileHover={{ scale: 1.05 }}
@@ -341,7 +338,7 @@ const UserDashboard = () => {
             <AnimatePresence>
               {showRightArrow && (
                 <motion.button
-                  initial={{ opacity: 0, scale: 0.8, x: 5 }}
+                  initial={false}
                   animate={{ opacity: 1, scale: 1, x: 0 }}
                   exit={{ opacity: 0, scale: 0.8, x: 5 }}
                   whileHover={{ scale: 1.05 }}
@@ -501,7 +498,7 @@ const UserDashboard = () => {
                   <AnimatePresence>
                     {showSortDropdown && (
                       <motion.div
-                        initial={{ opacity: 0, y: 12 }}
+                        initial={false}
                         animate={{ opacity: 1, y: 0 }}
                         exit={{ opacity: 0, y: 12 }}
                         transition={{ duration: 0.2 }}
@@ -629,7 +626,7 @@ const UserDashboard = () => {
               </div>
 
               {/* RESTAURANT GRID */}
-              {loading ? (
+              {!shops?.length ? (
                 <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-8">
                   {[...Array(8)].map((_, index) => (
                     <div
@@ -675,7 +672,7 @@ const UserDashboard = () => {
                   {category.data.map((shop) => (
                     <motion.div
                       key={shop._id}
-                      initial={{ opacity: 0, y: 30 }}
+                      initial={false}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ duration: 0.4, ease: "easeOut" }}
                       whileHover={{ y: -6 }}

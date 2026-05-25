@@ -1,10 +1,7 @@
 import { useEffect, useRef } from "react";
 import axios from "axios";
-
 import { useDispatch, useSelector } from "react-redux";
-
-import { setLoading, setItemsInMyCity } from "../redux/userSlice";
-
+import { setShopLoading, setItemsInMyCity } from "../redux/userSlice";
 import { serverUrl } from "../App";
 
 const useGetItemByCity = () => {
@@ -19,7 +16,7 @@ const useGetItemByCity = () => {
     fetchedRef.current = true;
     const fetchItems = async () => {
       try {
-        dispatch(setLoading(true));
+        dispatch(setShopLoading(true))
         const result = await axios.get(
           `${serverUrl}/api/item/get-by-city/${city}`,
           {
@@ -35,10 +32,9 @@ const useGetItemByCity = () => {
           "Get Items By City Error:",
           error.response?.data || error.message,
         );
-
         dispatch(setItemsInMyCity([]));
       } finally {
-        dispatch(setLoading(false));
+        dispatch(setShopLoading(false));
       }
     };
     fetchItems();

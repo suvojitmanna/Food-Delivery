@@ -27,8 +27,16 @@ const App = () => {
   useGetCity();
   useGetMyShop();
   useGetByCity();
-  const { userData, loading, city } = useSelector((state) => state.user);
+  const {
+    userData,
+    city,
 
+    userLoading,
+    cityLoading,
+    shopLoading,
+    itemLoading,
+  } = useSelector((state) => state.user);
+  const loading = userLoading || cityLoading || shopLoading || itemLoading;
   useGetItemByCity(city?.city);
 
   if (loading) {
@@ -108,11 +116,9 @@ const App = () => {
           element={userData ? <AllRestaurantCard /> : <Navigate to="/signin" />}
         />
         <Route
-  path="/menu/:id"
-  element={
-    userData ? <MenuCard /> : <Navigate to="/signin" />
-  }
-/>
+          path="/menu/:id"
+          element={userData ? <MenuCard /> : <Navigate to="/signin" />}
+        />
       </Routes>
 
       <Toaster position="top-right" reverseOrder={false} />
