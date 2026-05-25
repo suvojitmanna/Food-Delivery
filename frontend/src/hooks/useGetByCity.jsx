@@ -8,16 +8,12 @@ import { useDispatch, useSelector } from "react-redux";
 
 const useGetByCity = () => {
   const dispatch = useDispatch();
-
   const { city } = useSelector((state) => state.user);
-
   useEffect(() => {
     if (!city) return;
-
     const fetchShop = async () => {
       try {
         dispatch(setLoading(true));
-
         const result = await axios.get(
           `${serverUrl}/api/shop/get-by-city/${city}`,
           {
@@ -27,13 +23,11 @@ const useGetByCity = () => {
         dispatch(setShopInMyCity(result.data.shops));
       } catch (error) {
         console.log(error);
-
         dispatch(setShopInMyCity([]));
       } finally {
         dispatch(setLoading(false));
       }
     };
-
     fetchShop();
   }, [city, dispatch]);
 };

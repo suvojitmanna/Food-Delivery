@@ -9,34 +9,26 @@ import { serverUrl } from "../App";
 
 const useGetItemByCity = () => {
   const dispatch = useDispatch();
-
   const fetchedRef = useRef(false);
-
   const userState = useSelector((state) => state.user);
 
   // SAFE CITY
   const city = userState?.city?.city || userState?.city || "";
-
   useEffect(() => {
     if (!city || fetchedRef.current) return;
-
     fetchedRef.current = true;
-
     const fetchItems = async () => {
       try {
         dispatch(setLoading(true));
-
         const result = await axios.get(
           `${serverUrl}/api/item/get-by-city/${city}`,
           {
             withCredentials: true,
           },
         );
-
         if (result.data.success) {
           dispatch(setItemsInMyCity(result.data.items || []));
         }
-
         console.log("ITEMS:", result.data.items);
       } catch (error) {
         console.log(
@@ -49,10 +41,8 @@ const useGetItemByCity = () => {
         dispatch(setLoading(false));
       }
     };
-
     fetchItems();
   }, [city]);
-
   return null;
 };
 

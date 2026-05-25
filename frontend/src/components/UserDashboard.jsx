@@ -55,8 +55,8 @@ const UserDashboard = () => {
   const [selectedSort, setSelectedSort] = useState("Top Rated");
   const [showSortDropdown, setShowSortDropdown] = useState(false);
   const [loading, setLoading] = useState(true);
-
   const dropdownRef = useRef(null);
+
   // ================= SORT OPTIONS =================
   const sortOptions = [
     "Top Rated",
@@ -143,6 +143,7 @@ const UserDashboard = () => {
 
     return () => clearTimeout(timer);
   }, []);
+  
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
@@ -504,7 +505,8 @@ const UserDashboard = () => {
                         animate={{ opacity: 1, y: 0 }}
                         exit={{ opacity: 0, y: 12 }}
                         transition={{ duration: 0.2 }}
-                        className="absolute right-0 mt-3 w-64 bg-white border border-stone-200 rounded-3xl shadow-[0_20px_60px_rgba(0,0,0,0.12)] overflow-hidden z-50"ref={dropdownRef}
+                        className="absolute right-0 mt-3 w-64 bg-white border border-stone-200 rounded-3xl shadow-[0_20px_60px_rgba(0,0,0,0.12)] overflow-hidden z-50"
+                        ref={dropdownRef}
                       >
                         <div className="p-3">
                           <div className="px-3 py-2">
@@ -749,7 +751,10 @@ const UserDashboard = () => {
                             </span>
                           </div>
 
-                          <button className="inline-flex items-center gap-1.5 bg-slate-900 hover:bg-orange-600 text-white rounded-xl px-4 py-2.5 text-xs font-semibold transition-colors duration-300 group/btn" onClick={() => navigate(`/menu/${shop._id}`)}>
+                          <button
+                            className="inline-flex items-center gap-1.5 bg-slate-900 hover:bg-orange-600 text-white rounded-xl px-4 py-2.5 text-xs font-semibold transition-colors duration-300 group/btn"
+                            onClick={() => navigate(`/menu/${shop._id}`)}
+                          >
                             View Menu
                             <FiArrowRight className="transition-transform duration-300 group-hover/btn:translate-x-1" />
                           </button>

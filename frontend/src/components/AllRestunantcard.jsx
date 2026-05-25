@@ -38,7 +38,7 @@ const AllRestaurantCard = () => {
   const toggleFavorite = (id) => {
     setFavorites((prev) => ({ ...prev, [id]: !prev[id] }));
   };
-console.log(shops)
+  console.log(shops);
   // FILTER & SEARCH LOGIC
   const filteredRestaurants = useMemo(() => {
     let data = [...shops];
@@ -196,7 +196,7 @@ const RestaurantCard = ({
   isFavorite,
   onToggleFavorite,
 }) => {
-    const navigate = useNavigate()
+  const navigate = useNavigate();
   return (
     <motion.div
       layout
@@ -289,8 +289,10 @@ const RestaurantCard = ({
             </div>
           </div>
 
-          <button className="px-4 py-2 rounded-xl bg-slate-900 hover:bg-orange-500 text-white text-xs font-bold tracking-wide transition-all duration-300 shadow-sm" onClick={() => navigate(`/menu/${shop._id}`)}
->
+          <button
+            className="px-4 py-2 rounded-xl bg-slate-900 hover:bg-orange-500 text-white text-xs font-bold tracking-wide transition-all duration-300 shadow-sm"
+            onClick={() => navigate(`/menu/${shop._id}`)}
+          >
             View Menu
           </button>
         </div>
