@@ -23,9 +23,6 @@ const MenuCard = () => {
     (item) => item.shop._id === shop?._id,
   );
 
-  if (loading) {
-    return <div>Loading...</div>;
-  }
   useEffect(() => {
     const handleOutsideClick = (e) => {
       if (modalRef.current && !modalRef.current.contains(e.target)) {
@@ -39,6 +36,45 @@ const MenuCard = () => {
       document.removeEventListener("mousedown", handleOutsideClick);
     };
   }, []);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-[#faf9f6] p-4 md:p-8">
+        <div className="max-w-3xl mx-auto">
+          {/* HEADER SKELETON */}
+          <div className="w-64 h-10 bg-slate-200 rounded-lg mb-4 animate-pulse"></div>
+          <hr className="border-2 border-slate-300 mb-8" />
+
+          {/* MENU ITEMS SKELETON */}
+          {[...Array(4)].map((_, index) => (
+            <div key={index} className="border-b border-slate-300 py-8">
+              <div className="flex items-start justify-between gap-8">
+                {/* LEFT CONTENT SKELETON */}
+                <div className="flex-1 animate-pulse">
+                  <div className="w-4 h-4 bg-slate-200 rounded-sm mb-3"></div>
+                  <div className="w-3/4 h-8 bg-slate-200 rounded-lg mb-4"></div>
+                  <div className="w-24 h-6 bg-slate-200 rounded-md mb-3"></div>
+                  <div className="w-16 h-4 bg-slate-200 rounded-md mb-4"></div>
+                  <div className="space-y-3 mt-4">
+                    <div className="h-4 bg-slate-200 rounded-md w-full"></div>
+                    <div className="h-4 bg-slate-200 rounded-md w-5/6"></div>
+                    <div className="h-4 bg-slate-200 rounded-md w-4/6"></div>
+                  </div>
+                </div>
+
+                {/* RIGHT IMAGE SKELETON */}
+                <div className="relative min-w-[220px] flex-shrink-0 animate-pulse">
+                  <div className="w-[220px] h-[180px] bg-slate-200 rounded-3xl"></div>
+                  <div className="absolute bottom-[-20px] left-1/2 -translate-x-1/2 bg-slate-300 w-32 h-12 rounded-2xl shadow-lg border border-white"></div>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-[#faf9f6] p-4 md:p-8">
       {/* MENU GRID */}

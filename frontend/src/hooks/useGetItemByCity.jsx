@@ -1,44 +1,58 @@
-import { useEffect, useRef } from "react";
+import { useEffect } from "react";
 import axios from "axios";
 import { useDispatch, useSelector } from "react-redux";
-import { setShopLoading, setItemsInMyCity } from "../redux/userSlice";
+import {
+  setItemsInMyCity,
+  setItemLoading,
+} from "../redux/userSlice";
 import { serverUrl } from "../App";
 
 const useGetItemByCity = () => {
   const dispatch = useDispatch();
-  const fetchedRef = useRef(false);
-  const userState = useSelector((state) => state.user);
 
-  // SAFE CITY
-  const city = userState?.city?.city || userState?.city || "";
+  const cityData = useSelector((state) => state.user.city);
+
+  const city =
+    cityData?.city ||
+    cityData?.town ||
+    cityData?.state_district ||
+    cityData?.county ||
+    "";
+
   useEffect(() => {
-    if (!city || fetchedRef.current) return;
-    fetchedRef.current = true;
+    if (!city) return;
+
     const fetchItems = async () => {
       try {
-        dispatch(setShopLoading(true))
+        dispatch(setItemLoading(true));
+
+        console.log("Fetching items for:", city);
+
         const result = await axios.get(
-          `${serverUrl}/api/item/get-by-city/${city}`,
+          `${serverUrl}/api/item/get-by-city/${encodeURIComponent(city)}`,
           {
             withCredentials: true,
           },
         );
-        if (result.data.success) {
-          dispatch(setItemsInMyCity(result.data.items || []));
-        }
-        console.log("ITEMS:", result.data.items);
+
+        console.log("API Response:", result.data);
+
+        dispatch(setItemsInMyCity(result.data.items || []));
       } catch (error) {
-        console.log(
+        console.error(
           "Get Items By City Error:",
           error.response?.data || error.message,
         );
+
         dispatch(setItemsInMyCity([]));
       } finally {
-        dispatch(setShopLoading(false));
+        dispatch(setItemLoading(false));
       }
     };
+
     fetchItems();
-  }, [city]);
+  }, [city, dispatch]);
+
   return null;
 };
 

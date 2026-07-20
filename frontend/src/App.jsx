@@ -18,14 +18,12 @@ import useGetByCity from "./hooks/useGetByCity";
 import useGetItemByCity from "./hooks/useGetItemByCity";
 import AllRestaurantCard from "./components/AllRestunantcard";
 import MenuCard from "./components/menuCard";
-import FoodCard from "./components/foodCard";
 
 export const serverUrl = import.meta.env.VITE_BASE_URL;
 
 const App = () => {
   useGetCurrentUser();
   useGetCity();
-  useGetMyShop();
   useGetByCity();
   const {
     userData,

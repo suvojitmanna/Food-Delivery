@@ -43,9 +43,30 @@ const UserDashboard = () => {
   const scrollContainerRef = useRef(null);
   const navigate = useNavigate();
   const userState = useSelector((state) => state.user);
-  const city = userState?.city?.city || userState?.city || "your city";
-  const municipality = userState?.city?.municipality || "your city";
+  const location = userState?.city;
+
+  const city =
+    location?.city ||
+    location?.town ||
+    location?.village ||
+    location?.municipality ||
+    location?.county ||
+    location?.state_district ||
+    location?.state ||
+    "your city";
+
+  const municipality =
+    location?.municipality ||
+    location?.city ||
+    location?.town ||
+    location?.village ||
+    location?.county ||
+    location?.state_district ||
+    location?.state ||
+    "your city";
   const shops = userState?.shopInMyCity || [];
+  const items = userState?.itemsInMyCity || [];
+
   const cards = campaignCards(city);
   const marqueeCards = [...cards, ...cards];
   const [showLeftArrow, setShowLeftArrow] = useState(false);
@@ -108,12 +129,19 @@ const UserDashboard = () => {
   }
 
   const checkScrollBounds = () => {
-    if (scrollContainerRef.current) {
-      const { scrollLeft, scrollWidth, clientWidth } =
-        scrollContainerRef.current;
-      setShowLeftArrow(scrollLeft > 10);
-      setShowRightArrow(scrollLeft + clientWidth < scrollWidth - 10);
-    }
+    const container = scrollContainerRef.current;
+    if (!container) return;
+
+    const { scrollLeft, scrollWidth, clientWidth } = container;
+
+    console.log({
+      scrollLeft,
+      scrollWidth,
+      clientWidth,
+    });
+
+    setShowLeftArrow(scrollLeft > 0);
+    setShowRightArrow(scrollLeft < scrollWidth - clientWidth - 1);
   };
 
   useEffect(() => {
@@ -154,18 +182,17 @@ const UserDashboard = () => {
   }, []);
 
   const handleScroll = (direction) => {
-    if (scrollContainerRef.current) {
-      const { scrollLeft, clientWidth } = scrollContainerRef.current;
-      const scrollAmount = clientWidth * 0.75;
+    const container = scrollContainerRef.current;
+    if (!container) return;
 
-      scrollContainerRef.current.scrollTo({
-        left:
-          direction === "left"
-            ? scrollLeft - scrollAmount
-            : scrollLeft + scrollAmount,
-        behavior: "smooth",
-      });
-    }
+    const scrollAmount = 300;
+
+    container.scrollBy({
+      left: direction === "left" ? -scrollAmount : scrollAmount,
+      behavior: "smooth",
+    });
+
+    setTimeout(checkScrollBounds, 300);
   };
   // AFTER ALL HOOKS
   if (!hydrated || !city) return null;
