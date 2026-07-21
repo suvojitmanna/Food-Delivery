@@ -18,22 +18,25 @@ import useGetByCity from "./hooks/useGetByCity";
 import useGetItemByCity from "./hooks/useGetItemByCity";
 import AllRestaurantCard from "./components/AllRestunantcard";
 import MenuCard from "./components/menuCard";
+import Cart from "./components/Cart";
 
 export const serverUrl = import.meta.env.VITE_BASE_URL;
 
 const App = () => {
-  useGetCurrentUser();
-  useGetCity();
-  useGetByCity();
-  const {
-    userData,
-    city,
+ const {
+  userData,
+  city,
+  userLoading,
+  cityLoading,
+  shopLoading,
+  itemLoading,
+} = useSelector((state) => state.user);
 
-    userLoading,
-    cityLoading,
-    shopLoading,
-    itemLoading,
-  } = useSelector((state) => state.user);
+useGetCurrentUser();
+useGetCity();
+useGetMyShop();
+useGetByCity();
+useGetItemByCity(city?.city);
   const loading = userLoading || cityLoading || shopLoading || itemLoading;
   useGetItemByCity(city?.city);
 
@@ -117,6 +120,7 @@ const App = () => {
           path="/menu/:id"
           element={userData ? <MenuCard /> : <Navigate to="/signin" />}
         />
+        <Route path="/cart/:shopId" element={<Cart />} />
       </Routes>
 
       <Toaster position="top-right" reverseOrder={false} />

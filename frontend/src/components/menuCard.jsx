@@ -1,20 +1,22 @@
-import React, { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { FaStar } from "react-icons/fa";
-import { FiPlus, FiX } from "react-icons/fi";
-import { useSelector } from "react-redux";
-import { useParams } from "react-router-dom";
+import { FiX } from "react-icons/fi";
+import { useNavigate, useParams } from "react-router-dom";
+import { useDispatch, useSelector } from "react-redux";
+import { addToCart, removeFromCart } from "../redux/cartSlice";
 
 const MenuCard = () => {
   const { id } = useParams();
   const modalRef = useRef();
   const [expandedItem, setExpandedItem] = useState(null);
-  const [cartCount, setCartCount] = useState({});
+  const dispatch = useDispatch();
+  const carts = useSelector((state) => state.cart.carts);
+
   const { itemsInMyCity, shopInMyCity, loading } = useSelector(
     (state) => state.user,
   );
 
-  // MODAL STATE
   const [selectedItem, setSelectedItem] = useState(null);
 
   const shop = shopInMyCity?.find((item) => item._id === id);
@@ -22,6 +24,13 @@ const MenuCard = () => {
   const filteredItems = itemsInMyCity?.filter(
     (item) => item.shop._id === shop?._id,
   );
+
+  const currentShopCart = carts[shop?._id] || {
+    items: {},
+  };
+
+  const cartCount = currentShopCart.items;
+  const navigate = useNavigate();
 
   useEffect(() => {
     const handleOutsideClick = (e) => {
@@ -74,6 +83,20 @@ const MenuCard = () => {
       </div>
     );
   }
+
+  const totalItems = Object.values(cartCount).reduce(
+    (sum, item) => sum + item.quantity,
+    0,
+  );
+
+  const totalPrice = Object.values(cartCount).reduce(
+    (sum, item) => sum + item.price * item.quantity,
+    0,
+  );
+
+  const handleAdd = (item) => {
+    dispatch(addToCart(item));
+  };
 
   return (
     <div className="min-h-screen bg-[#faf9f6] p-4 md:p-8">
@@ -203,42 +226,36 @@ const MenuCard = () => {
 
                 {/* ADD BUTTON */}
                 {cartCount[item._id] ? (
-                  <div className="absolute bottom-[-20px] left-1/2 -translate-x-1/2 flex items-center gap-5 bg-white border border-slate-200 shadow-lg px-6 py-3 rounded-2xl">
+                  <div className="absolute bottom-[-20px] left-1/2 -translate-x-1/2 flex items-center gap-5 bg-white border shadow-lg px-6 py-3 rounded-2xl">
                     <button
                       onClick={() =>
-                        setCartCount((prev) => ({
-                          ...prev,
-                          [item._id]: prev[item._id] - 1,
-                        }))
+                        dispatch(
+                          removeFromCart({
+                            shopId: shop._id,
+                            itemId: item._id,
+                          }),
+                        )
                       }
-                      className="text-3xl font-black text-green-600 cursor-pointer"
+                      className="text-3xl font-black text-green-600"
                     >
                       -
                     </button>
+
                     <span className="text-xl font-black text-green-600">
-                      {cartCount[item._id]}
+                      {cartCount[item._id].quantity}
                     </span>
+
                     <button
-                      onClick={() =>
-                        setCartCount((prev) => ({
-                          ...prev,
-                          [item._id]: prev[item._id] + 1,
-                        }))
-                      }
-                      className="text-3xl font-black text-green-600 cursor-pointer"
+                      onClick={() => handleAdd(item)}
+                      className="text-3xl font-black text-green-600"
                     >
                       +
                     </button>
                   </div>
                 ) : (
                   <button
-                    onClick={() =>
-                      setCartCount((prev) => ({
-                        ...prev,
-                        [item._id]: 1,
-                      }))
-                    }
-                    className="absolute bottom-[-20px] left-1/2 -translate-x-1/2 bg-white border border-slate-200 shadow-lg px-10 py-3 rounded-2xl text-green-600 font-black text-2xl hover:bg-slate-50 transition-all whitespace-nowrap"
+                    onClick={() => handleAdd(item)}
+                    className="absolute bottom-[-20px] left-1/2 -translate-x-1/2 bg-white border shadow-lg px-10 py-3 rounded-2xl text-green-600 font-black"
                   >
                     ADD
                   </button>
@@ -337,9 +354,41 @@ const MenuCard = () => {
                     </div>
                   </div>
 
-                  <button className="px-8 py-3 rounded-2xl bg-green-500 hover:bg-green-600 text-white font-bold text-lg cursor-pointer">
-                    ADD
-                  </button>
+                  {cartCount[selectedItem._id] ? (
+                    <div className="flex items-center gap-4 bg-green-500 text-white px-6 py-3 rounded-2xl">
+                      <button
+                        onClick={() =>
+                          dispatch(
+                            removeFromCart({
+                              shopId: selectedItem.shop._id,
+                              itemId: selectedItem._id,
+                            }),
+                          )
+                        }
+                        className="w-8 h-8 flex items-center justify-center text-2xl font-bold hover:bg-white/20 rounded-full transition"
+                      >
+                        -
+                      </button>
+
+                      <span className="min-w-[24px] text-center text-lg font-bold">
+                        {cartCount[selectedItem._id].quantity}
+                      </span>
+
+                      <button
+                        onClick={() => handleAdd(selectedItem)}
+                        className="w-8 h-8 flex items-center justify-center text-2xl font-bold hover:bg-white/20 rounded-full transition"
+                      >
+                        +
+                      </button>
+                    </div>
+                  ) : (
+                    <button
+                      onClick={() => handleAdd(selectedItem)}
+                      className="px-8 py-3 rounded-2xl bg-green-500 hover:bg-green-600 text-white font-bold text-lg transition-all duration-300"
+                    >
+                      ADD
+                    </button>
+                  )}
                 </div>
 
                 <p className="text-slate-600 mt-5 leading-relaxed pb-6">
@@ -347,6 +396,29 @@ const MenuCard = () => {
                 </p>
               </div>
             </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {totalItems > 0 && (
+          <motion.div
+            initial={{ y: 100 }}
+            animate={{ y: 0 }}
+            exit={{ y: 100 }}
+            transition={{ duration: 0.3 }}
+            className="fixed bottom-5 left-1/2 -translate-x-1/2 w-[95%] max-w-3xl bg-green-600 text-white rounded-2xl shadow-2xl px-6 py-4 flex justify-between items-center z-50 cursor-pointer"
+            onClick={() => navigate("/cart")}
+          >
+            <div>
+              <h3 className="font-bold">
+                {totalItems} Item{totalItems > 1 ? "s" : ""} Added
+              </h3>
+
+              <p className="text-sm">₹{totalPrice}</p>
+            </div>
+
+            <div className="text-lg font-bold">View Cart →</div>
           </motion.div>
         )}
       </AnimatePresence>

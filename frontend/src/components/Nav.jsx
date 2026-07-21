@@ -1,5 +1,5 @@
 import axios from "axios";
-import React, { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { FaLocationDot, FaXmark, FaGear } from "react-icons/fa6";
 import { IoIosSearch } from "react-icons/io";
 import { TiShoppingCart } from "react-icons/ti";
@@ -20,11 +20,10 @@ const Nav = () => {
   const [showInfo, setShowInfo] = useState(false);
   const [showSearch, setShowSearch] = useState(false);
   const [search, setSearch] = useState("");
-  const [cartCount, setCartCount] = useState(2);
 
   const dropdownRef = useRef();
   const navigate = useNavigate();
-
+  const carts = useSelector((state) => state.cart.carts);
   // Close dropdown on outside click
   useEffect(() => {
     const handleClick = (e) => {
@@ -59,6 +58,16 @@ const Nav = () => {
       .slice(0, 2)
       .toUpperCase();
   };
+
+  const totalItems = Object.values(carts).reduce((shopTotal, shop) => {
+    return (
+      shopTotal +
+      Object.values(shop.items).reduce(
+        (itemTotal, item) => itemTotal + item.quantity,
+        0,
+      )
+    );
+  }, 0);
 
   const locationString =
     [city?.suburb, city?.street, city?.state_district, city?.state]
@@ -183,12 +192,16 @@ const Nav = () => {
                 <motion.button
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
-                  className="relative w-11 h-11 rounded-full bg-gray-100 hover:bg-[#ff4d2d]/10 flex items-center justify-center transition-all duration-300 group cursor-pointer"
+                  onClick={() => navigate("/cart")}
+                  className="relative w-11 h-11 rounded-full bg-gray-100 hover:bg-[#ff4d2d]/10 flex items-center justify-center transition-all duration-300 group"
                 >
                   <TiShoppingCart className="text-2xl text-gray-700 group-hover:text-[#ff4d2d]" />
-                  <span className="absolute -top-1 -right-1 bg-[#ff4d2d] text-white text-[11px] font-bold w-5 h-5 rounded-full flex items-center justify-center shadow-lg">
-                    {cartCount}
-                  </span>
+
+                  {totalItems > 0 && (
+                    <span className="absolute -top-1 -right-1 bg-[#ff4d2d] text-white text-[11px] font-bold w-5 h-5 rounded-full flex items-center justify-center shadow-lg">
+                      {totalItems}
+                    </span>
+                  )}
                 </motion.button>
               </>
             )}

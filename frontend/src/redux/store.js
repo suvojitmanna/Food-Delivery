@@ -1,36 +1,31 @@
-import { configureStore } from "@reduxjs/toolkit";
-import userSlice from "./userSlice";
-import ownerslice from "./ownerSlice";
+import { configureStore, combineReducers } from "@reduxjs/toolkit";
+import userReducer from "./userSlice";
+import ownerReducer from "./ownerSlice";
+import cartReducer from "./cartSlice";
+import { persistStore, persistReducer } from "redux-persist";
+import createWebStorage from "redux-persist/es/storage/createWebStorage";
 
-import storage from "redux-persist/lib/storage";
-
-import {
-  persistStore,
-  persistReducer,
-} from "redux-persist";
-
-console.log(storage);
+const storage = createWebStorage("local");
 
 const persistConfig = {
   key: "root",
-  storage: storage.default || storage,
+  storage,
+  whitelist: ["user", "owner", "cart"],
 };
 
-const persistedUserReducer = persistReducer(
-  persistConfig,
-  userSlice
-);
+const rootReducer = combineReducers({
+  user: userReducer,
+  owner: ownerReducer,
+  cart: cartReducer,
+});
 
-const persistedOwnerReducer = persistReducer(
+const persistedReducer = persistReducer(
   persistConfig,
-  ownerslice
+  rootReducer
 );
 
 export const store = configureStore({
-  reducer: {
-    user: persistedUserReducer,
-    owner: persistedOwnerReducer,
-  },
+  reducer: persistedReducer,
 
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({

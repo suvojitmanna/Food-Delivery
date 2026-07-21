@@ -81,7 +81,7 @@ const UserDashboard = () => {
   useEffect(() => {
     setHydrated(true);
   }, []);
-  // ================= SORT OPTIONS =================
+  //  SORT OPTIONS
   const sortOptions = [
     "Top Rated",
     "Fast Delivery",
@@ -206,7 +206,7 @@ const UserDashboard = () => {
         animate="show"
         className="w-full max-w-7xl flex flex-col gap-16 px-4 sm:px-8 md:px-12 pt-8 sm:pt-16 select-none"
       >
-        {/* ================= HERO EDITORIAL BANNER ================= */}
+        {/*  HERO EDITORIAL BANNER  */}
         <motion.section
           variants={itemFadeVariants}
           className="relative overflow-hidden rounded-[40px] border border-stone-200/60 bg-white px-8 py-10 sm:px-14 sm:py-16 shadow-[0_30px_70px_-20px_rgba(0,0,0,0.04)]"
@@ -327,7 +327,7 @@ const UserDashboard = () => {
           </div>
         </motion.section>
 
-        {/* ================= SECTION 1: CATEGORY CAROUSEL ================= */}
+        {/*  SECTION 1: CATEGORY CAROUSEL  */}
 
         <motion.section className="flex flex-col gap-6 items-start w-full">
           <motion.div variants={itemFadeVariants} className="space-y-1">
@@ -396,7 +396,7 @@ const UserDashboard = () => {
           </motion.div>
         </motion.section>
 
-        {/* ================= SECTION 2: MARKETING & PROMO GRID ================= */}
+        {/*  SECTION 2: MARKETING & PROMO GRID  */}
 
         <motion.section
           variants={itemFadeVariants}
@@ -473,10 +473,10 @@ const UserDashboard = () => {
           </motion.div>
         </motion.section>
 
-        {/* ================= SECTION 3: RESTAURANT DYNAMIC LISTING ================= */}
+        {/*  SECTION 3: RESTAURANT DYNAMIC LISTING  */}
 
         <section className="flex flex-col gap-16 w-full">
-          {/* ================= HEADER ================= */}
+          {/*  HEADER  */}
           <motion.div
             variants={itemFadeVariants}
             className="flex flex-col xl:flex-row xl:items-center xl:justify-between gap-7"
@@ -575,7 +575,7 @@ const UserDashboard = () => {
             </div>
           </motion.div>
 
-          {/* ================= CATEGORY LIST ================= */}
+          {/*  CATEGORY LIST  */}
           {[
             {
               title: `Top restaurant chains in ${municipality}`,
