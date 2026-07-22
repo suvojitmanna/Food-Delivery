@@ -19,6 +19,7 @@ import AllRestaurantCard from "./components/AllRestunantcard";
 import MenuCard from "./components/menuCard";
 import Cart from "./components/Cart";
 import DeliveryAddressPage from "./components/DeliveryAddressPage";
+import MultiCart from "./components/Multicart";
 
 export const serverUrl = import.meta.env.VITE_BASE_URL;
 
@@ -115,6 +116,7 @@ const App = () => {
           element={userData ? <MenuCard /> : <Navigate to="/signin" />}
         />
         <Route path="/cart/:shopId" element={<Cart />} />
+        <Route path="/multi-cart" element={<MultiCart />} />
         <Route path="/DeliveryAddressPage" element={<DeliveryAddressPage />} />
         <Route path="/DeliveryAddressPage/:id" element={<DeliveryAddressPage />} />
       </Routes>

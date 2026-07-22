@@ -1,11 +1,13 @@
 import { AnimatePresence, motion } from "framer-motion";
 import { useDispatch, useSelector } from "react-redux";
 import { FiX, FiTrash2 } from "react-icons/fi";
+import { useNavigate } from "react-router-dom"; 
 import { clearAllCart } from "../redux/cartSlice";
 import RestaurantCartCard from "./RestaurantCartCard";
 
 const CartBottomSheet = ({ open, onClose }) => {
   const dispatch = useDispatch();
+  const navigate = useNavigate(); 
   const carts = useSelector((state) => state.cart.carts);
   const cartList = Object.values(carts);
 
@@ -67,7 +69,11 @@ const CartBottomSheet = ({ open, onClose }) => {
             >
               {cartList.length > 0 ? (
                 cartList.map((cart) => (
-                  <RestaurantCartCard key={cart.shop._id} cart={cart} />
+                  <RestaurantCartCard 
+                    key={cart.shop._id} 
+                    cart={cart} 
+                    onClose={onClose}
+                  />
                 ))
               ) : (
                 <div className="text-center text-gray-500 py-10 font-medium">
@@ -91,7 +97,13 @@ const CartBottomSheet = ({ open, onClose }) => {
                     Clear All
                   </button>
 
-                  <button className="flex-1 h-14 rounded-2xl bg-green-600 text-white font-bold hover:bg-green-700 active:scale-95 transition-all shadow-lg shadow-green-600/30">
+                  <button 
+                    onClick={() => {
+                      navigate('/multi-cart');
+                      onClose(); 
+                    }}
+                    className="flex-1 h-14 rounded-2xl bg-green-600 text-white font-bold hover:bg-green-700 active:scale-95 transition-all shadow-lg shadow-green-600/30"
+                  >
                     Checkout All
                   </button>
                 </div>

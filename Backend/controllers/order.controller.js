@@ -9,16 +9,28 @@ export const placeOrder = async (req, res) => {
             deliveryAddress,
             totalAmount,
         } = req.body;
+        console.log("DELIVERY ADDRESS");
+        console.log(deliveryAddress);
 
+        console.log("CART ITEMS");
+        console.log(cartItems);
         if (!cartItems || cartItems.length === 0) {
             return res.status(400).json({
                 message: "Cart is empty",
             });
         }
 
-        if (!deliveryAddress || !deliveryAddress.text || deliveryAddress.latitude == null || deliveryAddress.longitude == null
+        if (
+            !deliveryAddress ||
+            !deliveryAddress.receiverName ||
+            !deliveryAddress.mobileNumber ||
+            !deliveryAddress.flatNo ||
+            !deliveryAddress.streetArea ||
+            deliveryAddress.latitude == null ||
+            deliveryAddress.longitude == null
         ) {
             return res.status(400).json({
+                success: false,
                 message: "Send complete delivery address",
             });
         }

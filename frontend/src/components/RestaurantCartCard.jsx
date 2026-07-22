@@ -4,7 +4,7 @@ import { useDispatch } from "react-redux";
 import { useNavigate } from "react-router-dom";
 import { clearShopCart } from "../redux/cartSlice";
 
-const RestaurantCartCard = ({ cart }) => {
+const RestaurantCartCard = ({ cart, onClose }) => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
 
@@ -16,6 +16,11 @@ const RestaurantCartCard = ({ cart }) => {
     (sum, item) => sum + item.price * item.quantity,
     0,
   );
+
+  const handleNavigate = (path) => {
+    navigate(path);
+    if (onClose) onClose(); 
+  };
 
   return (
     <motion.div
@@ -61,14 +66,14 @@ const RestaurantCartCard = ({ cart }) => {
         {/* Bottom Actions */}
         <div className="flex items-center justify-between mt-1">
           <button
-            onClick={() => navigate(`/menu/${cart.shop._id}`)}
+            onClick={() => handleNavigate(`/menu/${cart.shop._id}`)}
             className="text-[13px] text-gray-400 hover:text-gray-700 font-semibold transition-colors underline underline-offset-4 decoration-gray-200 cursor-pointer"
           >
             View Menu
           </button>
 
           <button
-            onClick={() => navigate(`/cart/${cart.shop._id}`)}
+            onClick={() => handleNavigate(`/cart/${cart.shop._id}`)}
             className="bg-green-50 text-green-600 hover:bg-green-100 hover:text-green-700 px-4 py-1.5 rounded-xl font-bold text-[13px] transition-colors cursor-pointer"
           >
             View Cart

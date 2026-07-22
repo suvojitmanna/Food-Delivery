@@ -579,7 +579,7 @@ const DeliveryAddressPage = () => {
                   name="receiverName"
                   value={formData.receiverName}
                   onChange={handleChange}
-                  placeholder="John Doe"
+                  placeholder="Enter Your Name"
                   className="w-full rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3.5 outline-none focus:bg-white focus:ring-4 focus:ring-black/5 focus:border-black"
                   required
                 />
@@ -588,7 +588,7 @@ const DeliveryAddressPage = () => {
               {/* Phone Number */}
               <div>
                 <label className="block mb-2 text-xs font-bold uppercase text-gray-500">
-                  Phone Number
+                  Enter Phone Number
                 </label>
 
                 <input

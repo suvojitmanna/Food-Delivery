@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   FiMinus,
@@ -9,11 +9,9 @@ import {
   FiTrash2,
   FiShoppingBag,
   FiChevronRight,
-  FiStar,
-  FiClock,
   FiMapPin,
   FiTag,
-  FiTruck,
+  FiCreditCard,
   FiEdit3,
   FiHeart,
 } from "react-icons/fi";
@@ -21,23 +19,47 @@ import { addToCart, removeFromCart } from "../redux/cartSlice";
 import axios from "axios";
 import { serverUrl } from "../App";
 
-const Cart = () => {
-  const [paymentMethod, setPaymentMethod] = useState("UPI");
-  const [tipAmount, setTipAmount] = useState(0);
-  const [cookingInstruction, setCookingInstruction] = useState("");
-  const [showAddressList, setShowAddressList] = useState(false);
-
-  const { shopId } = useParams();
+const MultiCart = () => {
   const navigate = useNavigate();
   const dispatch = useDispatch();
 
+  // State
+  const [paymentMethod, setPaymentMethod] = useState("UPI");
+  const [tipAmount, setTipAmount] = useState(0);
+  const [cookingInstruction, setCookingInstruction] = useState("");
   const [addresses, setAddresses] = useState([]);
   const [selectedAddress, setSelectedAddress] = useState(null);
+  const [showAddressList, setShowAddressList] = useState(false);
 
   const addressContainerRef = useRef(null);
 
-  const cart = useSelector((state) => state.cart.carts[shopId]);
+  // Fetch ALL carts from Redux
+  const allCarts = useSelector((state) => state.cart.carts);
 
+  // Filter out empty carts and format as an array of [shopId, cartData]
+  const activeCarts = Object.entries(allCarts || {}).filter(
+    ([, cart]) => cart.items && Object.keys(cart.items).length > 0
+  );
+
+  // Click outside listener for addresses
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (
+        addressContainerRef.current &&
+        !addressContainerRef.current.contains(event.target)
+      ) {
+        setShowAddressList(false);
+      }
+    };
+    if (showAddressList) {
+      document.addEventListener("mousedown", handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [showAddressList]);
+
+  // Fetch Delivery Addresses
   useEffect(() => {
     const getAddresses = async () => {
       try {
@@ -58,7 +80,8 @@ const Cart = () => {
     getAddresses();
   }, []);
 
-  if (!cart || !cart.items || Object.keys(cart.items).length === 0) {
+  // Early return if EVERYTHING is empty
+  if (activeCarts.length === 0) {
     return (
       <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center p-6 text-center">
         <motion.div
@@ -73,7 +96,7 @@ const Cart = () => {
           Your cart is empty
         </h2>
         <p className="text-gray-500 mb-8 max-w-[250px]">
-          Looks like you haven't added anything from this restaurant yet.
+          Looks like you haven't added anything to your cart yet.
         </p>
         <button
           onClick={() => navigate("/")}
@@ -85,33 +108,42 @@ const Cart = () => {
     );
   }
 
-  const items = Object.values(cart.items);
-  const itemTotal = items.reduce(
-    (sum, item) => sum + item.price * item.quantity,
-    0,
-  );
-  const gstTotal = items.reduce(
-    (sum, item) =>
-      sum + (item.price * item.quantity * (Number(item.gst) || 0)) / 100,
-    0,
-  );
-  const packingFeeTotal = items.reduce(
-    (sum, item) => sum + (item.hasPackingFee ? 10 * item.quantity : 0),
-    0,
-  );
+  // --- GLOBAL CALCULATIONS ---
+  let globalItemTotal = 0;
+  let globalGstTotal = 0;
+  let globalPackingFeeTotal = 0;
+  const orderItems = [];
 
-  const platformFee = 8;
+  activeCarts.forEach(([shopId, cart]) => {
+    Object.values(cart.items).forEach((item) => {
+      globalItemTotal += item.price * item.quantity;
+      globalGstTotal +=
+        (item.price * item.quantity * (Number(item.gst) || 0)) / 100;
+      globalPackingFeeTotal += item.hasPackingFee ? 10 * item.quantity : 0;
+
+      orderItems.push({
+        _id: item._id,
+        shop: shopId,
+        name: item.name,
+        image: item.image,
+        price: item.price,
+        quantity: item.quantity,
+      });
+    });
+  });
+
+  const platformFee = 8 * activeCarts.length; // Charge platform fee per restaurant
   const deliveryFee = 0;
-  const couponDiscount = 0;
+  const couponDiscount = 0; // Placeholder
 
   const grandTotal = Math.round(
-    itemTotal +
+    globalItemTotal +
       platformFee +
-      gstTotal +
-      packingFeeTotal +
+      globalGstTotal +
+      globalPackingFeeTotal +
       deliveryFee +
       tipAmount -
-      couponDiscount,
+      couponDiscount
   );
 
   const handlePlaceOrder = async () => {
@@ -122,17 +154,8 @@ const Cart = () => {
         return;
       }
 
-      const cartItems = items.map((item) => ({
-        _id: item._id,
-        shop: shopId,
-        name: item.name,
-        image: item.image,
-        price: item.price,
-        quantity: item.quantity,
-      }));
-
       const payload = {
-        cartItems,
+        cartItems: orderItems,
         paymentMethod: paymentMethod === "COD" ? "cod" : "online",
         deliveryAddress: selectedAddress,
         totalAmount: grandTotal,
@@ -143,9 +166,7 @@ const Cart = () => {
       const { data } = await axios.post(
         `${serverUrl}/api/order/place-order`,
         payload,
-        {
-          withCredentials: true,
-        },
+        { withCredentials: true }
       );
 
       if (data.success) {
@@ -156,23 +177,6 @@ const Cart = () => {
       alert(error.response?.data?.message || "Failed to place order.");
     }
   };
-
-  useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (
-        addressContainerRef.current &&
-        !addressContainerRef.current.contains(event.target)
-      ) {
-        setShowAddressList(false);
-      }
-    };
-    if (showAddressList) {
-      document.addEventListener("mousedown", handleClickOutside);
-    }
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
-  }, [showAddressList]);
 
   return (
     <div className="min-h-screen bg-gray-100 pb-32 font-sans">
@@ -190,30 +194,12 @@ const Cart = () => {
       </header>
 
       <div className="max-w-3xl mx-auto px-4 py-4 space-y-4">
-        {/* --- RESTAURANT INFO CARD --- */}
-        <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
-          <div className="flex items-center gap-4 text-xs font-bold text-gray-600 mb-2">
-            <span className="flex items-center gap-1 text-green-700 bg-green-50 px-2 py-1 rounded-md">
-              <FiStar className="fill-green-700" size={12} /> 4.5
-            </span>
-            <span className="flex items-center gap-1">
-              <FiClock size={12} /> 30 mins
-            </span>
-            <span className="text-gray-300">•</span>
-            <span className="text-blue-600">Free Delivery</span>
-          </div>
-          <h1 className="text-2xl font-black text-gray-900">
-            {cart.shop?.name || "Restaurant Name"}
-          </h1>
-        </div>
-
         {/* --- DELIVERY ADDRESS --- */}
         <div
           ref={addressContainerRef}
           className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100"
         >
           {!showAddressList ? (
-            /* --- COMPACT VIEW (Selected Address) --- */
             <div className="flex items-start justify-between">
               <div className="flex items-start gap-3">
                 <div className="mt-1 text-orange-500">
@@ -240,13 +226,12 @@ const Cart = () => {
               </div>
               <button
                 onClick={() => setShowAddressList(true)}
-                className="text-orange-600 font-bold text-sm hover:underline cursor-pointer"
+                className="text-orange-600 font-bold text-sm hover:underline"
               >
                 Change
               </button>
             </div>
           ) : (
-            /* --- EXPANDED VIEW (All Addresses) --- */
             <div className="space-y-4">
               <div className="flex items-center justify-between mb-2">
                 <h3 className="font-bold text-gray-900 flex items-center gap-2">
@@ -255,7 +240,7 @@ const Cart = () => {
                 </h3>
                 <button
                   onClick={() => setShowAddressList(false)}
-                  className="text-gray-500 text-sm font-medium hover:text-gray-800 cursor-pointer"
+                  className="text-gray-500 text-sm font-medium hover:text-gray-800"
                 >
                   Cancel
                 </button>
@@ -294,7 +279,6 @@ const Cart = () => {
                       </p>
                     </div>
 
-                    {/* Edit Button */}
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
@@ -308,7 +292,6 @@ const Cart = () => {
                 ))}
               </div>
 
-              {/* Add New Address Button */}
               <button
                 onClick={() => navigate("/DeliveryAddressPage")}
                 className="w-full py-3 mt-2 border-2 border-dashed border-orange-300 text-orange-600 bg-orange-50/30 rounded-xl font-bold text-sm hover:bg-orange-50 transition-colors"
@@ -319,85 +302,91 @@ const Cart = () => {
           )}
         </div>
 
-        {/* --- DELIVERY PARTNER (MOCKED) --- */}
-        <div className="bg-blue-50/50 rounded-2xl p-4 border border-blue-100 flex items-center gap-3">
-          <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center text-blue-600">
-            <FiTruck size={20} />
-          </div>
-          <div>
-            <h4 className="font-bold text-gray-900 text-sm">
-              Rahul is assigned
-            </h4>
-            <p className="text-blue-600 font-medium text-xs">
-              Estimated 28-32 mins
-            </p>
-          </div>
-        </div>
+        {/* --- MULTIPLE RESTAURANTS BLOCKS --- */}
+        {activeCarts.map(([shopId, cart]) => {
+          const shopItems = Object.values(cart.items);
+          const shopSubtotal = shopItems.reduce(
+            (sum, item) => sum + item.price * item.quantity,
+            0
+          );
 
-        {/* --- ITEMS SECTION --- */}
-        <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
-          <h3 className="font-black text-gray-900 mb-4 pb-4 border-b border-gray-100">
-            Your Order ({items.length})
-          </h3>
-
-          <div className="space-y-6">
-            <AnimatePresence>
-              {items.map((item) => (
-                <motion.div
-                  key={item._id}
-                  layout
-                  className="flex flex-col gap-2"
+          return (
+            <div
+              key={shopId}
+              className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100"
+            >
+              <div className="flex items-center justify-between border-b border-gray-100 pb-3 mb-4">
+                <h3 className="font-black text-gray-900 text-lg">
+                  {cart.shop?.name || "Restaurant"}
+                </h3>
+                <button
+                  onClick={() => navigate(`/shop/${shopId}`)}
+                  className="text-orange-600 text-sm font-bold hover:underline"
                 >
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <h4 className="font-bold text-gray-900 text-base">
-                        {item.name}
-                      </h4>
-                      <p className="text-gray-700 font-semibold text-sm mt-1">
-                        ₹{item.price.toLocaleString("en-IN")}
-                      </p>
-                    </div>
-                    <div className="flex items-center gap-3 bg-red-50/50 border border-red-100 rounded-lg p-1">
-                      <button
-                        onClick={() =>
-                          dispatch(removeFromCart({ shopId, itemId: item._id }))
-                        }
-                        className="w-7 h-7 flex items-center justify-center rounded-md text-red-600 bg-white shadow-sm"
-                      >
-                        {item.quantity === 1 ? (
-                          <FiTrash2 size={14} />
-                        ) : (
-                          <FiMinus size={14} />
-                        )}
-                      </button>
-                      <span className="font-bold text-sm text-red-600 min-w-[16px] text-center">
-                        {item.quantity}
-                      </span>
-                      <button
-                        onClick={() => dispatch(addToCart(item))}
-                        className="w-7 h-7 flex items-center justify-center rounded-md text-red-600 bg-white shadow-sm"
-                      >
-                        <FiPlus size={14} />
-                      </button>
-                    </div>
-                  </div>
-                  {/* Mock Addon details to match wireframe */}
-                  {item.addons && (
-                    <p className="text-gray-500 text-xs mt-1">Extra Cheese</p>
-                  )}
-                  <div className="border-b border-gray-100 pb-2"></div>
-                </motion.div>
-              ))}
-            </AnimatePresence>
-          </div>
+                  Add items
+                </button>
+              </div>
 
-          <button
-            onClick={() => navigate(`/menu/${shopId}`)}
-            className="w-full mt-2 py-3 text-red-500 font-bold text-sm flex items-center justify-center gap-2 hover:bg-red-50 rounded-xl transition-colors"
-          >
-            <FiPlus /> Add More Items
-          </button>
-        </div>
+              <div className="space-y-5">
+                <AnimatePresence>
+                  {shopItems.map((item) => (
+                    <motion.div
+                      key={item._id}
+                      layout
+                      className="flex flex-col gap-2"
+                    >
+                      <div className="flex items-start justify-between">
+                        <div>
+                          <h4 className="font-bold text-gray-900 text-base">
+                            {item.name}
+                          </h4>
+                          <p className="text-gray-700 font-semibold text-sm mt-1">
+                            ₹{item.price.toLocaleString("en-IN")}
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-3 bg-red-50/50 border border-red-100 rounded-lg p-1">
+                          <button
+                            onClick={() =>
+                              dispatch(removeFromCart({ shopId, itemId: item._id }))
+                            }
+                            className="w-7 h-7 flex items-center justify-center rounded-md text-red-600 bg-white shadow-sm"
+                          >
+                            {item.quantity === 1 ? (
+                              <FiTrash2 size={14} />
+                            ) : (
+                              <FiMinus size={14} />
+                            )}
+                          </button>
+                          <span className="font-bold text-sm text-red-600 min-w-[16px] text-center">
+                            {item.quantity}
+                          </span>
+                          <button
+                            onClick={() => dispatch(addToCart({ ...item, shopId }))}
+                            className="w-7 h-7 flex items-center justify-center rounded-md text-red-600 bg-white shadow-sm"
+                          >
+                            <FiPlus size={14} />
+                          </button>
+                        </div>
+                      </div>
+                      {/* Optional: Addon Details */}
+                      {item.addons && (
+                        <p className="text-gray-500 text-xs mt-1">
+                          {item.addons}
+                        </p>
+                      )}
+                    </motion.div>
+                  ))}
+                </AnimatePresence>
+              </div>
+
+              {/* Shop Subtotal */}
+              <div className="mt-4 pt-3 border-t border-dashed border-gray-200 flex justify-between items-center text-sm font-bold text-gray-700">
+                <span>Subtotal</span>
+                <span>₹{shopSubtotal.toLocaleString("en-IN")}</span>
+              </div>
+            </div>
+          );
+        })}
 
         {/* --- COUPON SECTION --- */}
         <button className="w-full bg-white border border-gray-100 rounded-2xl p-4 shadow-sm flex items-center justify-between active:scale-[0.98] transition-transform">
@@ -412,7 +401,7 @@ const Cart = () => {
         <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
           <div className="flex items-center gap-2 mb-3 text-gray-800 font-bold">
             <FiEdit3 size={18} />
-            <h3>Instructions for Restaurant</h3>
+            <h3>Instructions</h3>
           </div>
           <textarea
             value={cookingInstruction}
@@ -452,7 +441,7 @@ const Cart = () => {
         <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
           <h3 className="font-bold text-gray-900 mb-4">Payment Method</h3>
           <div className="grid grid-cols-2 gap-3">
-            {["Card", "COD"].map((method) => (
+            {["UPI", "Card", "Wallet", "COD"].map((method) => (
               <label
                 key={method}
                 className={`flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition-colors ${
@@ -469,32 +458,30 @@ const Cart = () => {
                   onChange={(e) => setPaymentMethod(e.target.value)}
                   className="w-4 h-4 text-green-600 border-gray-300 focus:ring-green-500"
                 />
-                <span className="font-bold text-gray-700 text-sm">
-                  {method}
-                </span>
+                <span className="font-bold text-gray-700 text-sm">{method}</span>
               </label>
             ))}
           </div>
         </div>
 
-        {/* --- BILL DETAILS --- */}
+        {/* --- BILL SUMMARY --- */}
         <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
-          <h3 className="font-bold text-gray-900 mb-4">Bill Details</h3>
+          <h3 className="font-bold text-gray-900 mb-4">Bill Summary</h3>
           <div className="space-y-3 text-sm">
             <div className="flex justify-between text-gray-600">
               <span>Item Total</span>
-              <span>₹{itemTotal.toLocaleString("en-IN")}</span>
+              <span>₹{globalItemTotal.toLocaleString("en-IN")}</span>
             </div>
 
             <div className="flex justify-between text-gray-600">
               <span>GST</span>
-              <span>₹{Math.round(gstTotal).toLocaleString("en-IN")}</span>
+              <span>₹{Math.round(globalGstTotal).toLocaleString("en-IN")}</span>
             </div>
 
-            {packingFeeTotal > 0 && (
+            {globalPackingFeeTotal > 0 && (
               <div className="flex justify-between text-gray-600">
                 <span>Packing</span>
-                <span>₹{packingFeeTotal.toLocaleString("en-IN")}</span>
+                <span>₹{globalPackingFeeTotal.toLocaleString("en-IN")}</span>
               </div>
             )}
 
@@ -547,8 +534,7 @@ const Cart = () => {
             onClick={handlePlaceOrder}
             className="flex-1 h-14 bg-green-600 text-white rounded-xl flex items-center justify-center gap-2 font-bold text-lg active:scale-[0.98] transition-transform shadow-lg shadow-green-600/20"
           >
-            {paymentMethod === "COD" ? "Place Order" : "Pay Now"}{" "}
-            <FiChevronRight />
+            Place Order <FiChevronRight />
           </button>
         </div>
       </div>
@@ -556,4 +542,4 @@ const Cart = () => {
   );
 };
 
-export default Cart;
+export default MultiCart;
