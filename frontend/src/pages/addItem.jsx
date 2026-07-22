@@ -2,13 +2,12 @@ import React, { useState } from "react";
 import { FaPlus, FaBowlFood } from "react-icons/fa6";
 import { IoArrowBackOutline } from "react-icons/io5";
 import { MdOutlineImage } from "react-icons/md";
-import { useSelector } from "react-redux";
+import { useSelector, useDispatch } from "react-redux";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { serverUrl } from "../App";
 import axios from "axios";
 import { setMyShopData } from "../redux/ownerSlice";
-import { useDispatch } from "react-redux";
 
 const CATEGORIES = [
   "Pizza",
@@ -44,9 +43,13 @@ const AddItem = () => {
   const { myShopData } = useSelector((state) => state.owner);
   const navigate = useNavigate();
   const dispatch = useDispatch();
+
+  // --- STATE VARIABLES ---
   const [name, setName] = useState("");
   const [price, setPrice] = useState("");
   const [originalPrice, setOriginalPrice] = useState("");
+  const [gst, setGst] = useState(""); // <-- NEW: GST State
+  const [hasPackingFee, setHasPackingFee] = useState(false); // <-- NEW: Packing Fee State
   const [category, setCategory] = useState(CATEGORIES[0]);
   const [type, setType] = useState("Veg");
   const [preparationTime, setPreparationTime] = useState(15);
@@ -86,6 +89,10 @@ const AddItem = () => {
       formData.append("description", description);
       formData.append("preparationTime", preparationTime);
 
+      // Append the new fields to FormData
+      if (gst) formData.append("gst", gst);
+      formData.append("hasPackingFee", hasPackingFee);
+
       if (originalPrice) {
         formData.append("originalPrice", originalPrice);
       }
@@ -108,6 +115,7 @@ const AddItem = () => {
       setLoading(false);
     }
   };
+
   const isFormValid = name.trim() && price && category && type && backendImage;
 
   return (
@@ -200,7 +208,7 @@ const AddItem = () => {
             </div>
           </div>
 
-          {/* Form */}
+          {/* Corrected Single Form */}
           <form onSubmit={handleSubmit} className="p-8 md:p-10 space-y-6">
             {/* Name input */}
             <div>
@@ -251,6 +259,66 @@ const AddItem = () => {
                   onChange={(e) => setOriginalPrice(e.target.value)}
                   className="w-full h-14 px-5 rounded-2xl border border-gray-200 bg-gray-50 focus:bg-white focus:border-[#ff4d2d] focus:ring-4 focus:ring-orange-100 outline-none transition-all"
                 />
+              </div>
+            </div>
+
+            {/* Taxes & Charges Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5 p-5 bg-gray-50/50 rounded-3xl border border-gray-100">
+              {/* GST Percentage */}
+              <div>
+                <label className="text-sm font-semibold text-gray-700 mb-2 block">
+                  GST Percentage (%)
+                </label>
+                <div className="relative">
+                  <input
+                    type="number"
+                    min="0"
+                    max="100"
+                    step="0.1"
+                    placeholder="e.g., 5"
+                    value={gst}
+                    onChange={(e) => setGst(e.target.value)}
+                    className="w-full h-14 pl-5 pr-10 rounded-2xl border border-gray-200 bg-white focus:border-[#ff4d2d] focus:ring-4 focus:ring-orange-100 outline-none transition-all"
+                  />
+                  <span className="absolute right-5 top-1/2 -translate-y-1/2 text-gray-400 font-medium">
+                    %
+                  </span>
+                </div>
+              </div>
+
+              {/* Packing Fee Toggle */}
+              <div>
+                <label className="text-sm font-semibold text-gray-700 mb-2 block">
+                  Extra Charges
+                </label>
+                <button
+                  type="button"
+                  onClick={() => setHasPackingFee(!hasPackingFee)}
+                  className={`w-full h-14 px-5 rounded-2xl border transition-all flex items-center justify-between group ${
+                    hasPackingFee
+                      ? "bg-orange-50 border-orange-500 text-orange-700 shadow-sm shadow-orange-100"
+                      : "bg-white border-gray-200 text-gray-600 hover:bg-gray-50"
+                  }`}
+                >
+                  <span className="font-medium text-sm">
+                    Apply ₹10 Packing Fee
+                  </span>
+
+                  {/* iOS-style Toggle Switch */}
+                  <div
+                    className={`w-12 h-6 rounded-full p-1 transition-colors duration-300 ease-in-out flex items-center ${
+                      hasPackingFee
+                        ? "bg-orange-500"
+                        : "bg-gray-200 group-hover:bg-gray-300"
+                    }`}
+                  >
+                    <div
+                      className={`w-4 h-4 bg-white rounded-full shadow-sm transform transition-transform duration-300 ease-in-out ${
+                        hasPackingFee ? "translate-x-6" : "translate-x-0"
+                      }`}
+                    />
+                  </div>
+                </button>
               </div>
             </div>
 
@@ -380,9 +448,11 @@ const AddItem = () => {
               disabled={loading || !isFormValid}
               type="submit"
               className={`relative overflow-hidden w-full h-14 rounded-2xl text-white font-bold text-lg transition-all flex items-center justify-center gap-3 
-                ${loading || !isFormValid 
-                  ? "bg-gray-300 cursor-not-allowed" 
-                  : "bg-gradient-to-r from-[#ff4d2d] to-orange-500 shadow-lg shadow-orange-200 hover:shadow-orange-300 cursor-pointer"}`}
+                ${
+                  loading || !isFormValid
+                    ? "bg-gray-300 cursor-not-allowed"
+                    : "bg-gradient-to-r from-[#ff4d2d] to-orange-500 shadow-lg shadow-orange-200 hover:shadow-orange-300 cursor-pointer"
+                }`}
             >
               {/* shimmer */}
               {!loading && isFormValid && (

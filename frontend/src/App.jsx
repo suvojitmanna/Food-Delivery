@@ -1,4 +1,3 @@
-import React from "react";
 import { Navigate, Route, Routes } from "react-router-dom";
 import { Toaster } from "react-hot-toast";
 
@@ -19,24 +18,19 @@ import useGetItemByCity from "./hooks/useGetItemByCity";
 import AllRestaurantCard from "./components/AllRestunantcard";
 import MenuCard from "./components/menuCard";
 import Cart from "./components/Cart";
+import DeliveryAddressPage from "./components/DeliveryAddressPage";
 
 export const serverUrl = import.meta.env.VITE_BASE_URL;
 
 const App = () => {
- const {
-  userData,
-  city,
-  userLoading,
-  cityLoading,
-  shopLoading,
-  itemLoading,
-} = useSelector((state) => state.user);
+  const { userData, city, userLoading, cityLoading, shopLoading, itemLoading } =
+    useSelector((state) => state.user);
 
-useGetCurrentUser();
-useGetCity();
-useGetMyShop();
-useGetByCity();
-useGetItemByCity(city?.city);
+  useGetCurrentUser();
+  useGetCity();
+  useGetMyShop();
+  useGetByCity();
+  useGetItemByCity(city?.city);
   const loading = userLoading || cityLoading || shopLoading || itemLoading;
   useGetItemByCity(city?.city);
 
@@ -121,6 +115,8 @@ useGetItemByCity(city?.city);
           element={userData ? <MenuCard /> : <Navigate to="/signin" />}
         />
         <Route path="/cart/:shopId" element={<Cart />} />
+        <Route path="/DeliveryAddressPage" element={<DeliveryAddressPage />} />
+        <Route path="/DeliveryAddressPage/:id" element={<DeliveryAddressPage />} />
       </Routes>
 
       <Toaster position="top-right" reverseOrder={false} />

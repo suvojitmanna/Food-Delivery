@@ -10,6 +10,8 @@ import "./config/passport.js";
 import userRouter from "./routes/user.route.js";
 import shopRouter from "./routes/shop.route.js";
 import itemRouter from "./routes/item.route.js";
+import orderRouter from "./routes/order.route.js";
+import addressRouter from "./routes/address.route.js";
 
 dotenv.config();
 
@@ -44,6 +46,8 @@ app.use("/api/auth", authRouter);
 app.use("/api/user", userRouter);
 app.use("/api/shop", shopRouter);
 app.use("/api/item", itemRouter);
+app.use("/api/delivery-address",addressRouter);
+app.use("/api/order", orderRouter);
 
 connectDb();
 

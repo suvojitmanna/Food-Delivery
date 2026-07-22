@@ -7,31 +7,44 @@ import { useDispatch, useSelector } from "react-redux";
 import { addToCart, removeFromCart } from "../redux/cartSlice";
 
 const MenuCard = () => {
-  const { id } = useParams();
+  // Consolidate useParams
+  const { id, shopId } = useParams();
   const modalRef = useRef();
   const [expandedItem, setExpandedItem] = useState(null);
-  const dispatch = useDispatch();
-  const carts = useSelector((state) => state.cart.carts);
+  const [selectedItem, setSelectedItem] = useState(null);
 
+  const dispatch = useDispatch();
+  const navigate = useNavigate();
+
+  const carts = useSelector((state) => state.cart.carts);
   const { itemsInMyCity, shopInMyCity, loading } = useSelector(
     (state) => state.user,
   );
 
-  const [selectedItem, setSelectedItem] = useState(null);
+  // Find the current shop based on the URL parameter
+  const shop = shopInMyCity?.find((item) => item._id === (id || shopId));
 
-  const shop = shopInMyCity?.find((item) => item._id === id);
-
+  // Filter items for this specific shop
   const filteredItems = itemsInMyCity?.filter(
     (item) => item.shop._id === shop?._id,
   );
 
-  const currentShopCart = carts[shop?._id] || {
-    items: {},
-  };
-
+  // Get the cart for this specific shop
+  const currentShopCart = carts[shop?._id] || { items: {} };
   const cartCount = currentShopCart.items;
-  const navigate = useNavigate();
 
+  // Calculate totals
+  const totalItems = Object.values(cartCount).reduce(
+    (sum, item) => sum + item.quantity,
+    0,
+  );
+
+  const totalPrice = Object.values(cartCount).reduce(
+    (sum, item) => sum + item.price * item.quantity,
+    0,
+  );
+
+  // Close modal when clicking outside
   useEffect(() => {
     const handleOutsideClick = (e) => {
       if (modalRef.current && !modalRef.current.contains(e.target)) {
@@ -39,13 +52,20 @@ const MenuCard = () => {
       }
     };
 
-    document.addEventListener("mousedown", handleOutsideClick);
-
+    if (selectedItem) {
+      document.addEventListener("mousedown", handleOutsideClick);
+    }
     return () => {
       document.removeEventListener("mousedown", handleOutsideClick);
     };
-  }, []);
+  }, [selectedItem]);
 
+  const handleAdd = (item) => {
+    // Ensuring we dispatch the full item object including its shop data
+    dispatch(addToCart(item));
+  };
+
+  // --- SKELETON LOADER ---
   if (loading) {
     return (
       <div className="min-h-screen bg-[#faf9f6] p-4 md:p-8">
@@ -84,28 +104,14 @@ const MenuCard = () => {
     );
   }
 
-  const totalItems = Object.values(cartCount).reduce(
-    (sum, item) => sum + item.quantity,
-    0,
-  );
-
-  const totalPrice = Object.values(cartCount).reduce(
-    (sum, item) => sum + item.price * item.quantity,
-    0,
-  );
-
-  const handleAdd = (item) => {
-    dispatch(addToCart(item));
-  };
-
   return (
-    <div className="min-h-screen bg-[#faf9f6] p-4 md:p-8">
+    <div className="min-h-screen bg-[#faf9f6] p-4 md:p-8 pb-32">
       {/* MENU GRID */}
       <div className="max-w-3xl mx-auto">
         {/* HEADER */}
         <div className="flex items-center justify-between mb-4">
           <h1 className="text-4xl font-black text-slate-800">
-            Recommended ({filteredItems?.length})
+            Recommended ({filteredItems?.length || 0})
           </h1>
         </div>
 
@@ -231,12 +237,12 @@ const MenuCard = () => {
                       onClick={() =>
                         dispatch(
                           removeFromCart({
-                            shopId: shop._id,
+                            shopId: shop?._id,
                             itemId: item._id,
                           }),
                         )
                       }
-                      className="text-3xl font-black text-green-600"
+                      className="text-3xl font-black text-green-600 active:scale-90 transition-transform"
                     >
                       -
                     </button>
@@ -247,7 +253,7 @@ const MenuCard = () => {
 
                     <button
                       onClick={() => handleAdd(item)}
-                      className="text-3xl font-black text-green-600"
+                      className="text-3xl font-black text-green-600 active:scale-90 transition-transform"
                     >
                       +
                     </button>
@@ -255,7 +261,7 @@ const MenuCard = () => {
                 ) : (
                   <button
                     onClick={() => handleAdd(item)}
-                    className="absolute bottom-[-20px] left-1/2 -translate-x-1/2 bg-white border shadow-lg px-10 py-3 rounded-2xl text-green-600 font-black"
+                    className="absolute bottom-[-20px] left-1/2 -translate-x-1/2 bg-white border shadow-lg px-10 py-3 rounded-2xl text-green-600 font-black active:scale-95 transition-transform"
                   >
                     ADD
                   </button>
@@ -285,7 +291,7 @@ const MenuCard = () => {
               {/* CLOSE BUTTON */}
               <button
                 onClick={() => setSelectedItem(null)}
-                className="absolute top-4 right-4 z-10 w-8 h-8 rounded-full bg-white shadow flex items-center justify-center"
+                className="absolute top-4 right-4 z-10 w-8 h-8 rounded-full bg-white shadow flex items-center justify-center active:scale-90 transition-transform"
               >
                 <FiX size={24} />
               </button>
@@ -318,6 +324,7 @@ const MenuCard = () => {
                   </div>
                 )}
               </div>
+
               {selectedItem.type?.toLowerCase() && (
                 <div className="px-3 pt-3">
                   <div
@@ -360,12 +367,12 @@ const MenuCard = () => {
                         onClick={() =>
                           dispatch(
                             removeFromCart({
-                              shopId: selectedItem.shop._id,
+                              shopId: shop?._id,
                               itemId: selectedItem._id,
                             }),
                           )
                         }
-                        className="w-8 h-8 flex items-center justify-center text-2xl font-bold hover:bg-white/20 rounded-full transition"
+                        className="w-8 h-8 flex items-center justify-center text-2xl font-bold hover:bg-white/20 rounded-full transition active:scale-90"
                       >
                         -
                       </button>
@@ -376,7 +383,7 @@ const MenuCard = () => {
 
                       <button
                         onClick={() => handleAdd(selectedItem)}
-                        className="w-8 h-8 flex items-center justify-center text-2xl font-bold hover:bg-white/20 rounded-full transition"
+                        className="w-8 h-8 flex items-center justify-center text-2xl font-bold hover:bg-white/20 rounded-full transition active:scale-90"
                       >
                         +
                       </button>
@@ -384,14 +391,14 @@ const MenuCard = () => {
                   ) : (
                     <button
                       onClick={() => handleAdd(selectedItem)}
-                      className="px-8 py-3 rounded-2xl bg-green-500 hover:bg-green-600 text-white font-bold text-lg transition-all duration-300"
+                      className="px-8 py-3 rounded-2xl bg-green-500 hover:bg-green-600 text-white font-bold text-lg transition-all duration-300 active:scale-95"
                     >
                       ADD
                     </button>
                   )}
                 </div>
 
-                <p className="text-slate-600 mt-5 leading-relaxed pb-6">
+                <p className="text-slate-600 mt-5 leading-relaxed pb-6 max-h-[150px] overflow-y-auto">
                   {selectedItem.description}
                 </p>
               </div>
@@ -400,25 +407,30 @@ const MenuCard = () => {
         )}
       </AnimatePresence>
 
+      {/* FIXED VIEW CART BOTTOM BAR */}
       <AnimatePresence>
         {totalItems > 0 && (
           <motion.div
             initial={{ y: 100 }}
             animate={{ y: 0 }}
             exit={{ y: 100 }}
-            transition={{ duration: 0.3 }}
-            className="fixed bottom-5 left-1/2 -translate-x-1/2 w-[95%] max-w-3xl bg-green-600 text-white rounded-2xl shadow-2xl px-6 py-4 flex justify-between items-center z-50 cursor-pointer"
-            onClick={() => navigate("/cart")}
+            transition={{ type: "spring", damping: 25, stiffness: 200 }}
+            className="fixed bottom-5 left-1/2 -translate-x-1/2 w-[95%] max-w-3xl bg-green-600 text-white rounded-2xl shadow-xl shadow-green-600/30 px-6 py-4 flex justify-between items-center z-40 cursor-pointer hover:bg-green-700 active:scale-[0.98] transition-all"
+            onClick={() => navigate(`/cart/${shop?._id}`)}
           >
             <div>
-              <h3 className="font-bold">
+              <h3 className="font-bold text-lg leading-tight">
                 {totalItems} Item{totalItems > 1 ? "s" : ""} Added
               </h3>
-
-              <p className="text-sm">₹{totalPrice}</p>
+              <p className="text-sm font-medium text-green-100">
+                ₹{totalPrice.toLocaleString("en-IN")}
+              </p>
             </div>
 
-            <div className="text-lg font-bold">View Cart →</div>
+            <div className="flex items-center gap-2 text-lg font-bold">
+              View Cart
+              <span className="text-xl">→</span>
+            </div>
           </motion.div>
         )}
       </AnimatePresence>

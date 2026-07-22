@@ -2,6 +2,7 @@ import { configureStore, combineReducers } from "@reduxjs/toolkit";
 import userReducer from "./userSlice";
 import ownerReducer from "./ownerSlice";
 import cartReducer from "./cartSlice";
+import mapReducer from "./mapSlice";
 import { persistStore, persistReducer } from "redux-persist";
 import createWebStorage from "redux-persist/es/storage/createWebStorage";
 
@@ -17,6 +18,7 @@ const rootReducer = combineReducers({
   user: userReducer,
   owner: ownerReducer,
   cart: cartReducer,
+  map: mapReducer
 });
 
 const persistedReducer = persistReducer(

@@ -16,6 +16,8 @@ export const addItem = async (req, res) => {
             rating,
             totalReviews,
             preparationTime,
+            hasPackingFee,
+            gst
         } = req.body;
         if (
             !name ||
@@ -68,6 +70,8 @@ export const addItem = async (req, res) => {
             rating,
             totalReviews,
             preparationTime,
+            hasPackingFee,
+            gst
         });
 
         shop.items.push(item._id);
@@ -107,6 +111,8 @@ export const editItem = async (req, res) => {
             rating,
             totalReviews,
             preparationTime,
+            hasPackingFee,
+            gst
         } = req.body;
 
         const item = await Item.findById(itemId);
@@ -160,6 +166,8 @@ export const editItem = async (req, res) => {
         item.rating = rating || item.rating;
         item.totalReviews = totalReviews || item.totalReviews;
         item.preparationTime = preparationTime || item.preparationTime;
+        item.hasPackingFee = hasPackingFee || item.hasPackingFee;
+        item.gst = gst || item.gst;
 
         // Save updated item
         await item.save();

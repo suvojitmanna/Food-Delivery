@@ -35,8 +35,6 @@ const useGetItemByCity = () => {
           },
         );
 
-        console.log("API Response:", result.data);
-
         dispatch(setItemsInMyCity(result.data.items || []));
       } catch (error) {
         console.error(
