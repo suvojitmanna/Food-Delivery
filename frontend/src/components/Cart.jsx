@@ -22,7 +22,7 @@ import axios from "axios";
 import { serverUrl } from "../App";
 
 const Cart = () => {
-  const [paymentMethod, setPaymentMethod] = useState("UPI");
+  const [paymentMethod, setPaymentMethod] = useState("COD");
   const [tipAmount, setTipAmount] = useState(0);
   const [cookingInstruction, setCookingInstruction] = useState("");
   const [showAddressList, setShowAddressList] = useState(false);
@@ -150,7 +150,7 @@ const Cart = () => {
 
       if (data.success) {
         alert("Order placed successfully!");
-        navigate("/orders");
+        navigate("/order");
       }
     } catch (error) {
       alert(error.response?.data?.message || "Failed to place order.");

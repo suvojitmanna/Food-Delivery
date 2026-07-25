@@ -49,6 +49,7 @@ const shopOrderSchema = new mongoose.Schema(
                 "preparing",
                 "ready",
                 "picked",
+                "out of delivered",
                 "delivered",
                 "cancelled",
             ],

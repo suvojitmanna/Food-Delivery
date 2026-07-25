@@ -23,7 +23,6 @@ const Nav = () => {
 
   const dropdownRef = useRef();
   const navigate = useNavigate();
-  const carts = useSelector((state) => state.cart.carts);
   // Close dropdown on outside click
   useEffect(() => {
     const handleClick = (e) => {
@@ -58,16 +57,6 @@ const Nav = () => {
       .slice(0, 2)
       .toUpperCase();
   };
-
-  const totalItems = Object.values(carts).reduce((shopTotal, shop) => {
-    return (
-      shopTotal +
-      Object.values(shop.items).reduce(
-        (itemTotal, item) => itemTotal + item.quantity,
-        0,
-      )
-    );
-  }, 0);
 
   const locationString =
     [city?.suburb, city?.street, city?.state_district, city?.state]
@@ -163,6 +152,7 @@ const Nav = () => {
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
                   className="relative hidden lg:flex items-center gap-2 h-11 px-5 rounded-3xl border border-gray-200 bg-[#ff4d2d]/10 hover:border-[#ff4d2d] text-[#ff4d2d] transition-all duration-300 font-semibold text-sm cursor-pointer"
+                  onClick={() => navigate("/my-order")}
                 >
                   <TbReceipt2 size={20} className="shrink-0" />
                   <span>My Orders</span>
@@ -180,28 +170,13 @@ const Nav = () => {
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
                   className="relative hidden lg:flex items-center gap-2 h-11 px-5 rounded-3xl border border-gray-200 bg-[#ff4d2d]/10 hover:border-[#ff4d2d] text-[#ff4d2d] transition-all duration-300 font-semibold text-sm cursor-pointer"
+                  onClick={() => navigate("/my-order")}
                 >
                   <TbReceipt2 size={20} className="shrink-0" />
                   <span>My Orders</span>
                   <span className="absolute -top-1 -right-1 bg-[#ff4d2d] text-white text-[10px] font-bold w-5 h-5 rounded-full flex items-center justify-center shadow-lg">
                     0
                   </span>
-                </motion.button>
-
-                {/* CART BUTTON - Visible across all screen sizes */}
-                <motion.button
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  onClick={() => navigate("/cart")}
-                  className="relative w-11 h-11 rounded-full bg-gray-100 hover:bg-[#ff4d2d]/10 flex items-center justify-center transition-all duration-300 group"
-                >
-                  <TiShoppingCart className="text-2xl text-gray-700 group-hover:text-[#ff4d2d]" />
-
-                  {totalItems > 0 && (
-                    <span className="absolute -top-1 -right-1 bg-[#ff4d2d] text-white text-[11px] font-bold w-5 h-5 rounded-full flex items-center justify-center shadow-lg">
-                      {totalItems}
-                    </span>
-                  )}
                 </motion.button>
               </>
             )}
@@ -306,6 +281,7 @@ const Nav = () => {
                             backgroundColor: "rgba(249, 250, 251, 1)",
                           }}
                           className="w-full flex sm:hidden items-center gap-3 px-4 py-3 rounded-2xl transition-all text-sm font-medium text-gray-700 cursor-pointer"
+                          onClick={() => navigate("/my-order")}
                         >
                           <motion.div
                             variants={{ hover: { y: -2 } }}
@@ -327,7 +303,7 @@ const Nav = () => {
                           whileHover={{
                             backgroundColor: "rgba(249, 250, 251, 1)",
                           }}
-                          className="md:hidden w-full flex items-center gap-3 px-4 py-3 rounded-2xl transition-all text-sm font-medium text-gray-700 cursor-pointer"
+                          className="md:hidden w-full flex items-center gap-3 px-4 py-3 rounded-2xl transition-all text-sm font-medium text-gray-700 cursor-pointer" onClick={() =>navigate("/my-order")}
                         >
                           <motion.div
                             variants={{ hover: { y: -2 } }}

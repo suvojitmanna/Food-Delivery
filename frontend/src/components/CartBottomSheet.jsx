@@ -91,7 +91,7 @@ const CartBottomSheet = ({ open, onClose }) => {
                       dispatch(clearAllCart());
                       onClose();
                     }}
-                    className="flex items-center justify-center gap-2 flex-1 h-14 rounded-2xl bg-red-50 text-red-600 font-bold hover:bg-red-100 active:scale-95 transition-all"
+                    className="flex items-center justify-center gap-2 flex-1 h-14 rounded-2xl bg-red-50 text-red-600 font-bold hover:bg-red-100 active:scale-95 transition-all cursor-pointer"
                   >
                     <FiTrash2 size={20} />
                     Clear All
@@ -102,7 +102,7 @@ const CartBottomSheet = ({ open, onClose }) => {
                       navigate('/multi-cart');
                       onClose(); 
                     }}
-                    className="flex-1 h-14 rounded-2xl bg-green-600 text-white font-bold hover:bg-green-700 active:scale-95 transition-all shadow-lg shadow-green-600/30"
+                    className="flex-1 h-14 rounded-2xl bg-green-600 text-white font-bold hover:bg-green-700 active:scale-95 transition-all shadow-lg shadow-green-600/30 cursor-pointer"
                   >
                     Checkout All
                   </button>

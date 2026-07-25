@@ -9,13 +9,21 @@ const cartSlice = createSlice({
     initialState,
     reducers: {
         addToCart: (state, action) => {
-            const item = action.payload;
-            const shopId = item.shop._id;
+            const payload = action.payload;
 
-            // Create shop cart if it doesn't exist
+            const item = payload.item || payload;
+            const shop = payload.shop || item.shop;
+
+            if (!shop) {
+                console.error("addToCart: shop is missing", payload);
+                return;
+            }
+
+            const shopId = typeof shop === "object" ? shop._id : shop;
+
             if (!state.carts[shopId]) {
                 state.carts[shopId] = {
-                    shop: item.shop,
+                    shop,
                     items: {},
                 };
             }
@@ -27,7 +35,7 @@ const cartSlice = createSlice({
             } else {
                 shopCart.items[item._id] = {
                     ...item,
-                    quantity: 1,
+                    quantity: item.quantity || 1,
                 };
             }
         },

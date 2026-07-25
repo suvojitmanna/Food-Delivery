@@ -9,7 +9,6 @@ const RestaurantCartCard = ({ cart, onClose }) => {
   const navigate = useNavigate();
 
   const items = Object.values(cart.items);
-
   const totalItems = items.reduce((sum, item) => sum + item.quantity, 0);
 
   const totalPrice = items.reduce(

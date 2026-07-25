@@ -11,11 +11,10 @@ import {
   FiChevronRight,
   FiMapPin,
   FiTag,
-  FiCreditCard,
   FiEdit3,
   FiHeart,
 } from "react-icons/fi";
-import { addToCart, removeFromCart } from "../redux/cartSlice";
+import { addToCart, clearAllCart, removeFromCart } from "../redux/cartSlice";
 import axios from "axios";
 import { serverUrl } from "../App";
 
@@ -132,9 +131,9 @@ const MultiCart = () => {
     });
   });
 
-  const platformFee = 8 * activeCarts.length; // Charge platform fee per restaurant
+  const platformFee = 8 * activeCarts.length;
   const deliveryFee = 0;
-  const couponDiscount = 0; // Placeholder
+  const couponDiscount = 0;
 
   const grandTotal = Math.round(
     globalItemTotal +
@@ -170,8 +169,9 @@ const MultiCart = () => {
       );
 
       if (data.success) {
+        dispatch(clearAllCart())
         alert("Order placed successfully!");
-        navigate("/orders");
+        navigate("/order");
       }
     } catch (error) {
       alert(error.response?.data?.message || "Failed to place order.");
