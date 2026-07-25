@@ -60,13 +60,14 @@ export const glassToast = (message, type = "success") => {
     { duration: 3000, position: "bottom-center" },
   );
 };
+
 const App = () => {
   const { userData, city, userLoading, cityLoading, shopLoading, itemLoading } =
     useSelector((state) => state.user);
 
   // GLOBAL CART SHEET STATE
   const [showCartSheet, setShowCartSheet] = useState(false);
-
+  const isOwner = userData?.role === "owner";
   useEffect(() => {
     const handleOpen = () => setShowCartSheet(true);
 
@@ -191,10 +192,10 @@ const App = () => {
       </Routes>
 
       {/* GLOBAL CART */}
-      {userData?.role === "user" && !hideFloatingCart && (
+
+      {!isOwner && !hideFloatingCart && (
         <>
           <FloatingCartBar onOpen={() => setShowCartSheet(true)} />
-
           <CartBottomSheet
             open={showCartSheet}
             onClose={() => setShowCartSheet(false)}

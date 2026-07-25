@@ -10,11 +10,6 @@ export const placeOrder = async (req, res) => {
             deliveryAddress,
             totalAmount,
         } = req.body;
-        console.log("DELIVERY ADDRESS");
-        console.log(deliveryAddress);
-
-        console.log("CART ITEMS");
-        console.log(cartItems);
         if (!cartItems || cartItems.length === 0) {
             return res.status(400).json({
                 message: "Cart is empty",

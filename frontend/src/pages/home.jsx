@@ -24,21 +24,12 @@ const Home = () => {
   }, []);
 
   return (
-    <div className="w-screen min-h-screen pt-[50px] flex flex-col items-center bg-[#fff9f6]">
+      <div className="w-screen min-h-screen pt-[50px] flex flex-col items-center bg-[#fff9f6]">
       {userData?.role === "user" && <UserDashboard />}
 
       {userData?.role === "owner" && <OwnerDashboard />}
 
       {userData?.role === "deliveryBoy" && <DeliveryBoyDashboard />}
-
-      {/* Floating Cart */}
-      <FloatingCartBar onOpen={() => setShowCartSheet(true)} />
-
-      {/* Cart Bottom Sheet */}
-      <CartBottomSheet
-        open={showCartSheet}
-        onClose={() => setShowCartSheet(false)}
-      />
     </div>
   );
 };
