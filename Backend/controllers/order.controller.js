@@ -1,6 +1,7 @@
 import Order from "../models/order.model.js";
 import Shop from "../models/shop.model.js";
 import User from "../models/user.model.js";
+import DeliveryAddress from "../models/address.model.js";
 
 export const placeOrder = async (req, res) => {
     try {
@@ -16,18 +17,10 @@ export const placeOrder = async (req, res) => {
             });
         }
 
-        if (
-            !deliveryAddress ||
-            !deliveryAddress.receiverName ||
-            !deliveryAddress.mobileNumber ||
-            !deliveryAddress.flatNo ||
-            !deliveryAddress.streetArea ||
-            deliveryAddress.latitude == null ||
-            deliveryAddress.longitude == null
-        ) {
+        if (!deliveryAddress) {
             return res.status(400).json({
                 success: false,
-                message: "Send complete delivery address",
+                message: "Please select a delivery address",
             });
         }
 
@@ -121,6 +114,7 @@ export const getPlaceOrder = async (req, res) => {
             orders = await Order.find({
                 "shopOrders.owner": req.userId,
             })
+                .populate("deliveryAddress")
                 .populate("shopOrders.shop", "name image address")
                 .populate("shopOrders.owner", "name email mobile")
                 .populate("user", "name email mobile")

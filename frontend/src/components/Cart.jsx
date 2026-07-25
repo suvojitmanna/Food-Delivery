@@ -134,7 +134,7 @@ const Cart = () => {
       const payload = {
         cartItems,
         paymentMethod: paymentMethod === "COD" ? "cod" : "online",
-        deliveryAddress: selectedAddress,
+        deliveryAddress: selectedAddress._id,
         totalAmount: grandTotal,
         tipAmount,
         cookingInstruction,

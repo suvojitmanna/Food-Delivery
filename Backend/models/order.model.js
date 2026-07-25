@@ -81,9 +81,9 @@ const orderSchema = new mongoose.Schema(
         },
 
         deliveryAddress: {
-            text: String,
-            latitude: Number,
-            longitude: Number,
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "DeliveryAddress",
+            required: true,
         },
 
         totalAmount: {

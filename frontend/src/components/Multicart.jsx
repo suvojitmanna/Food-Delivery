@@ -156,7 +156,7 @@ const MultiCart = () => {
       const payload = {
         cartItems: orderItems,
         paymentMethod: paymentMethod === "COD" ? "cod" : "online",
-        deliveryAddress: selectedAddress,
+        deliveryAddress: selectedAddress._id,
         totalAmount: grandTotal,
         tipAmount,
         cookingInstruction,
