@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useState, useEffect, useRef } from "react";
 import { useSelector } from "react-redux";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -8,7 +8,7 @@ import {
   FaHeart,
   FaSearch,
 } from "react-icons/fa";
-import { FiFilter, FiGrid, FiTrendingUp, FiZap, FiAward } from "react-icons/fi";
+import { FiFilter, FiGrid, FiTrendingUp, FiZap, FiAward, FiMic } from "react-icons/fi";
 import { useNavigate } from "react-router-dom";
 
 const FILTER_OPTIONS = [
@@ -31,14 +31,60 @@ const AllRestaurantCard = () => {
   const userState = useSelector((state) => state.user);
   const municipality = userState?.city?.municipality || "your city";
   const shops = userState?.shopInMyCity || [];
+  
   const [search, setSearch] = useState("");
   const [activeFilter, setActiveFilter] = useState("All");
   const [favorites, setFavorites] = useState({});
+  const [isListening, setIsListening] = useState(false); // Voice search state
+
+  const recognitionRef = useRef(null); // Ref for Speech API
 
   const toggleFavorite = (id) => {
     setFavorites((prev) => ({ ...prev, [id]: !prev[id] }));
   };
-  console.log(shops);
+
+  // Initialize Speech Recognition
+  useEffect(() => {
+    const SpeechRecognition =
+      window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (SpeechRecognition) {
+      const recognition = new SpeechRecognition();
+      recognition.continuous = false;
+      recognition.interimResults = false;
+      recognition.lang = "en-US";
+
+      recognition.onstart = () => setIsListening(true);
+
+      recognition.onresult = (event) => {
+        const transcript = event.results[0][0].transcript;
+        setSearch(transcript.replace(/[.]$/, ""));
+      };
+
+      recognition.onend = () => setIsListening(false);
+
+      recognition.onerror = (event) => {
+        console.error("Speech recognition error:", event.error);
+        setIsListening(false);
+      };
+
+      recognitionRef.current = recognition;
+    }
+  }, []);
+
+  const toggleListening = () => {
+    if (!recognitionRef.current) {
+      alert("Voice search is not supported in this browser.");
+      return;
+    }
+
+    if (isListening) {
+      recognitionRef.current.stop();
+    } else {
+      setSearch("");
+      recognitionRef.current.start();
+    }
+  };
+
   // FILTER & SEARCH LOGIC
   const filteredRestaurants = useMemo(() => {
     let data = [...shops];
@@ -92,16 +138,26 @@ const AllRestaurantCard = () => {
             trending cafés, and handpicked local favorites.
           </p>
 
-          {/* SEARCH BAR */}
-          <div className="relative w-full max-w-xl mt-4 group">
-            <FaSearch className="absolute top-1/2 -translate-y-1/2 left-5 text-slate-400 transition-colors group-focus-within:text-orange-500" />
+          {/* SEARCH BAR WITH VOICE TYPING */}
+          <div className="relative w-full max-w-xl mt-4 group flex items-center">
+            <FaSearch className="absolute left-5 text-slate-400 transition-colors group-focus-within:text-orange-500 z-10" />
             <input
               type="text"
               placeholder="Search restaurants..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-full h-14 rounded-2xl bg-white text-slate-900 pl-14 pr-5 outline-none transition-all duration-300 focus:ring-4 focus:ring-orange-500/20 shadow-lg font-medium placeholder:text-slate-400"
+              className="w-full h-14 rounded-2xl bg-white text-slate-900 pl-14 pr-16 outline-none transition-all duration-300 focus:ring-4 focus:ring-orange-500/20 shadow-lg font-medium placeholder:text-slate-400"
             />
+            <button
+              onClick={toggleListening}
+              className={`absolute right-3 p-2.5 rounded-xl transition-all duration-300 flex items-center justify-center z-10 ${
+                isListening
+                  ? "bg-orange-100 text-orange-600"
+                  : "text-slate-400 hover:text-orange-500 hover:bg-slate-50"
+              }`}
+            >
+              <FiMic className={`text-lg ${isListening ? "animate-pulse scale-110" : ""}`} />
+            </button>
           </div>
         </div>
       </div>

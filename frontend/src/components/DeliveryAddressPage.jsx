@@ -11,13 +11,16 @@ import {
   FiSearch,
   FiX,
   FiNavigation,
+  FiCheckCircle, // Added for toast
+  FiAlertCircle, // Added for toast
 } from "react-icons/fi";
 import { MapContainer, Marker, TileLayer, useMap } from "react-leaflet";
 import { useSelector } from "react-redux";
 import "leaflet/dist/leaflet.css";
 import L from "leaflet";
 import axios from "axios";
-import { serverUrl } from "../App";
+import { glassToast, serverUrl } from "../App";
+import toast from "react-hot-toast"; // Imported react-hot-toast
 
 // Custom pin
 const customIcon = L.divIcon({
@@ -136,7 +139,7 @@ const DeliveryAddressPage = () => {
   const handleDetectLocation = () => {
     setIsDetecting(true);
     if (!navigator.geolocation) {
-      alert("Geolocation not supported.");
+      glassToast("Geolocation not supported.", "error");
       setIsDetecting(false);
       return;
     }
@@ -151,7 +154,7 @@ const DeliveryAddressPage = () => {
         setShowSuggestions(false);
       },
       () => {
-        alert("Please allow location permission.");
+        glassToast("Please allow location permission.", "error");
         setIsDetecting(false);
       },
       { enableHighAccuracy: true, timeout: 10000 },
@@ -247,7 +250,7 @@ const DeliveryAddressPage = () => {
       const result = await response.json();
 
       if (!result.features?.length) {
-        alert("Location not found");
+        glassToast("Location not found", "error");
         return;
       }
       applyPlace(result.features[0]);
@@ -306,7 +309,7 @@ const DeliveryAddressPage = () => {
 
     try {
       if (!lat || !lon) {
-        return alert("Please select a location.");
+        return glassToast("Please select a location on the map.", "error");
       }
 
       const payload = {
@@ -346,12 +349,12 @@ const DeliveryAddressPage = () => {
       }
 
       if (data.success) {
-        alert("Address saved successfully.");
+        glassToast("Address saved successfully!", "success");
         navigate(-1);
       }
     } catch (error) {
       console.log(error);
-      alert(error.response?.data?.message || "Failed to save address.");
+      glassToast(error.response?.data?.message || "Failed to save address.", "error");
     }
   };
 

@@ -10,19 +10,23 @@ import { serverUrl } from "../App";
 import { setUserData } from "../redux/userSlice";
 import { FaPlus, FaUserCircle } from "react-icons/fa";
 import { TbReceipt2 } from "react-icons/tb";
+import { FiMic } from "react-icons/fi";
 import { useNavigate } from "react-router-dom";
 
 const Nav = () => {
-  const { userData, city } = useSelector((state) => state.user);
+  const { userData, city, myOrders } = useSelector((state) => state.user);
   const { myShopData } = useSelector((state) => state.owner);
   const dispatch = useDispatch();
 
   const [showInfo, setShowInfo] = useState(false);
   const [showSearch, setShowSearch] = useState(false);
   const [search, setSearch] = useState("");
+  const [isListening, setIsListening] = useState(false);
 
   const dropdownRef = useRef();
+  const recognitionRef = useRef(null);
   const navigate = useNavigate();
+
   // Close dropdown on outside click
   useEffect(() => {
     const handleClick = (e) => {
@@ -36,6 +40,48 @@ const Nav = () => {
       document.removeEventListener("mousedown", handleClick);
     };
   }, []);
+
+  // Initialize Speech Recognition
+  useEffect(() => {
+    const SpeechRecognition =
+      window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (SpeechRecognition) {
+      const recognition = new SpeechRecognition();
+      recognition.continuous = false;
+      recognition.interimResults = false;
+      recognition.lang = "en-US";
+
+      recognition.onstart = () => setIsListening(true);
+
+      recognition.onresult = (event) => {
+        const transcript = event.results[0][0].transcript;
+        setSearch(transcript.replace(/[.]$/, ""));
+      };
+
+      recognition.onend = () => setIsListening(false);
+
+      recognition.onerror = (event) => {
+        console.error("Speech recognition error:", event.error);
+        setIsListening(false);
+      };
+
+      recognitionRef.current = recognition;
+    }
+  }, []);
+
+  const toggleListening = () => {
+    if (!recognitionRef.current) {
+      alert("Voice search is not supported in this browser.");
+      return;
+    }
+
+    if (isListening) {
+      recognitionRef.current.stop();
+    } else {
+      setSearch("");
+      recognitionRef.current.start();
+    }
+  };
 
   const handleLogout = async () => {
     try {
@@ -62,6 +108,13 @@ const Nav = () => {
     [city?.suburb, city?.street, city?.state_district, city?.state]
       .filter(Boolean)
       .join(", ") || "Set Location";
+
+  const activeOrders =
+    myOrders?.filter((order) =>
+      order.shopOrders?.some(
+        (shopOrder) => shopOrder.status?.toLowerCase() !== "delivered",
+      ),
+    ) || [];
 
   return (
     <>
@@ -99,9 +152,9 @@ const Nav = () => {
                   </span>
                 </div>
 
-                {/* INPUT */}
-                <div className="flex items-center gap-3 flex-1 pl-3">
-                  <IoIosSearch className="text-gray-400 text-xl" />
+                {/* INPUT & VOICE */}
+                <div className="flex items-center gap-2 flex-1 pl-3 pr-1">
+                  <IoIosSearch className="text-gray-400 text-xl shrink-0" />
                   <input
                     type="text"
                     value={search}
@@ -109,6 +162,22 @@ const Nav = () => {
                     placeholder="Search restaurants, food..."
                     className="w-full bg-transparent outline-none text-sm text-gray-700 placeholder:text-gray-400"
                   />
+
+                  {/* Desktop Mic Button */}
+                  <button
+                    onClick={toggleListening}
+                    className={`p-1.5 rounded-full transition-all duration-300 ${
+                      isListening
+                        ? "bg-[#ff4d2d]/10 text-[#ff4d2d]"
+                        : "text-gray-400 hover:text-[#ff4d2d] hover:bg-gray-50"
+                    }`}
+                  >
+                    <FiMic
+                      className={`text-lg ${
+                        isListening ? "animate-pulse scale-110" : ""
+                      }`}
+                    />
+                  </button>
                 </div>
               </div>
             )}
@@ -175,7 +244,7 @@ const Nav = () => {
                   <TbReceipt2 size={20} className="shrink-0" />
                   <span>My Orders</span>
                   <span className="absolute -top-1 -right-1 bg-[#ff4d2d] text-white text-[10px] font-bold w-5 h-5 rounded-full flex items-center justify-center shadow-lg">
-                    0
+                    {activeOrders.length}
                   </span>
                 </motion.button>
               </>
@@ -303,7 +372,8 @@ const Nav = () => {
                           whileHover={{
                             backgroundColor: "rgba(249, 250, 251, 1)",
                           }}
-                          className="md:hidden w-full flex items-center gap-3 px-4 py-3 rounded-2xl transition-all text-sm font-medium text-gray-700 cursor-pointer" onClick={() =>navigate("/my-order")}
+                          className="md:hidden w-full flex items-center gap-3 px-4 py-3 rounded-2xl transition-all text-sm font-medium text-gray-700 cursor-pointer"
+                          onClick={() => navigate("/my-order")}
                         >
                           <motion.div
                             variants={{ hover: { y: -2 } }}
@@ -370,9 +440,9 @@ const Nav = () => {
                 </span>
               </div>
 
-              {/* Search Box */}
-              <div className="flex items-center h-12 rounded-2xl bg-gray-50 border border-gray-200 px-4 focus-within:border-[#ff4d2d] focus-within:bg-white transition-all duration-300">
-                <IoIosSearch className="text-gray-400 text-xl" />
+              {/* Search Box & Mobile Voice */}
+              <div className="flex items-center h-12 rounded-2xl bg-gray-50 border border-gray-200 px-3 focus-within:border-[#ff4d2d] focus-within:bg-white transition-all duration-300">
+                <IoIosSearch className="text-gray-400 text-xl shrink-0 ml-1" />
                 <input
                   autoFocus
                   type="text"
@@ -381,6 +451,22 @@ const Nav = () => {
                   placeholder="Search your favourite food..."
                   className="w-full h-full px-3 bg-transparent outline-none text-sm text-gray-700 placeholder:text-gray-400"
                 />
+
+                {/* Mobile Mic Button */}
+                <button
+                  onClick={toggleListening}
+                  className={`p-1.5 rounded-full transition-all duration-300 shrink-0 ${
+                    isListening
+                      ? "bg-[#ff4d2d]/10 text-[#ff4d2d]"
+                      : "text-gray-400 hover:text-[#ff4d2d] hover:bg-gray-100"
+                  }`}
+                >
+                  <FiMic
+                    className={`text-lg ${
+                      isListening ? "animate-pulse scale-110" : ""
+                    }`}
+                  />
+                </button>
               </div>
             </div>
           </motion.div>

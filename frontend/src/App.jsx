@@ -34,32 +34,32 @@ import { FiAlertCircle, FiCheckCircle } from "react-icons/fi";
 
 export const serverUrl = import.meta.env.VITE_BASE_URL;
 
-  //GLASS TOAST
-  export const glassToast = (message, type = "success") => {
-    toast.custom(
-      (t) => (
-        <div
-          className={`${
-            t.visible ? "animate-enter" : "animate-leave"
-          } max-w-sm w-full bg-slate-900/90 backdrop-blur-md shadow-[0_10px_40px_-10px_rgba(0,0,0,0.3)] border border-slate-700/50 rounded-2xl pointer-events-auto flex items-center gap-3 px-5 py-3.5`}
-        >
-          {type === "success" ? (
-            <div className="w-8 h-8 rounded-full bg-emerald-500/20 flex items-center justify-center text-emerald-400 shrink-0">
-              <FiCheckCircle size={18} />
-            </div>
-          ) : (
-            <div className="w-8 h-8 rounded-full bg-rose-500/20 flex items-center justify-center text-rose-400 shrink-0">
-              <FiAlertCircle size={18} />
-            </div>
-          )}
-          <span className="text-sm font-semibold text-white tracking-wide">
-            {message}
-          </span>
-        </div>
-      ),
-      { duration: 3000, position: "bottom-center" },
-    );
-  };
+//GLASS TOAST
+export const glassToast = (message, type = "success") => {
+  toast.custom(
+    (t) => (
+      <div
+        className={`${
+          t.visible ? "animate-enter" : "animate-leave"
+        } max-w-sm w-full bg-slate-900/90 backdrop-blur-md shadow-[0_10px_40px_-10px_rgba(0,0,0,0.3)] border border-slate-700/50 rounded-2xl pointer-events-auto flex items-center gap-3 px-5 py-3.5`}
+      >
+        {type === "success" ? (
+          <div className="w-8 h-8 rounded-full bg-emerald-500/20 flex items-center justify-center text-emerald-400 shrink-0">
+            <FiCheckCircle size={18} />
+          </div>
+        ) : (
+          <div className="w-8 h-8 rounded-full bg-rose-500/20 flex items-center justify-center text-rose-400 shrink-0">
+            <FiAlertCircle size={18} />
+          </div>
+        )}
+        <span className="text-sm font-semibold text-white tracking-wide">
+          {message}
+        </span>
+      </div>
+    ),
+    { duration: 3000, position: "bottom-center" },
+  );
+};
 const App = () => {
   const { userData, city, userLoading, cityLoading, shopLoading, itemLoading } =
     useSelector((state) => state.user);
@@ -90,8 +90,9 @@ const App = () => {
 
   const hideFloatingCart =
     location.pathname.startsWith("/cart") ||
-    location.pathname.startsWith("/multi-cart")
-    ||location.pathname.startsWith("/menu")
+    location.pathname.startsWith("/multi-cart") ||
+    location.pathname.startsWith("/menu") ||
+    location.pathname.startsWith("/DeliveryAddressPage");
 
   if (loading) {
     return (
