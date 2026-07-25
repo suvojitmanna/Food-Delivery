@@ -13,6 +13,8 @@ import {
   FiMic,
   FiX,
   FiClock,
+  FiCheckCircle,
+  FiAlertCircle,
 } from "react-icons/fi";
 import { FaStore } from "react-icons/fa";
 import { IoIosArrowForward } from "react-icons/io";
@@ -22,7 +24,7 @@ import { setMyOrders } from "../redux/userSlice";
 import axios from "axios";
 
 import { addToCart } from "../redux/cartSlice";
-import { serverUrl } from "../App";
+import { glassToast, serverUrl } from "../App";
 
 const UserOrderPage = ({ orders = [] }) => {
   const navigate = useNavigate();
@@ -34,6 +36,7 @@ const UserOrderPage = ({ orders = [] }) => {
 
   const recognitionRef = useRef(null);
   const { myOrders } = useSelector((state) => state.user);
+
   // Close dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (e) => {
@@ -134,41 +137,39 @@ const UserOrderPage = ({ orders = [] }) => {
     }
   };
 
-  // Action Handlers
   const handleTrackOrder = (orderId) => navigate(`/orders/track/${orderId}`);
 
-  // Handlers for adding to cart and redirecting
-const handleReorderItem = (item, shop) => {
-  const normalizedItem = {
-    ...item,
-    _id: item.item, // Convert item -> _id
+  const handleReorderItem = (item, shop) => {
+    const normalizedItem = {
+      ...item,
+      _id: item.item,
+    };
+
+    dispatch(addToCart({ item: normalizedItem, shop }));
+
+    window.dispatchEvent(new Event("open-cart-sheet"));
   };
 
-  dispatch(addToCart({ item: normalizedItem, shop }));
+  const handleReorderAll = (order) => {
+    order.shopOrders?.forEach((shopOrder) => {
+      shopOrder.items?.forEach((item) => {
+        const normalizedItem = {
+          ...item,
+          _id: item.item,
+        };
 
-  window.dispatchEvent(new Event("open-cart-sheet"));
-};
-
-const handleReorderAll = (order) => {
-  order.shopOrders?.forEach((shopOrder) => {
-    shopOrder.items?.forEach((item) => {
-      const normalizedItem = {
-        ...item,
-        _id: item.item, // Convert item -> _id
-      };
-
-      dispatch(
-        addToCart({
-          item: normalizedItem,
-          shop: shopOrder.shop,
-        })
-      );
+        dispatch(
+          addToCart({
+            item: normalizedItem,
+            shop: shopOrder.shop,
+          }),
+        );
+      });
     });
-  });
 
-  window.dispatchEvent(new Event("open-cart-sheet"));
-};
-console.log(handleReorderAll)
+    window.dispatchEvent(new Event("open-cart-sheet"));
+  };
+
   const handleShareRestaurant = async (shop) => {
     if (!shop) return;
     const shopId = typeof shop === "object" ? shop._id : shop;
@@ -184,7 +185,7 @@ console.log(handleReorderAll)
         });
       } else {
         await navigator.clipboard.writeText(shareUrl);
-        alert("Restaurant link copied!");
+        glassToast("Restaurant link copied!");
       }
     } catch (error) {
       console.error(error);
@@ -214,16 +215,15 @@ console.log(handleReorderAll)
         dispatch(
           setMyOrders(myOrders.filter((order) => order._id !== orderId)),
         );
-
-        alert("Order deleted successfully");
+        glassToast("Order deleted successfully!");
       } else {
-        alert(data.message || "Failed to delete order");
+        glassToast(data.message || "Failed to delete order", "error");
       }
     } catch (error) {
       console.error("Error deleting order:", error);
-      alert(
-        error.response?.data?.message ||
-          "An error occurred while deleting the order.",
+      glassToast(
+        error.response?.data?.message || "An error occurred while deleting.",
+        "error",
       );
     }
 

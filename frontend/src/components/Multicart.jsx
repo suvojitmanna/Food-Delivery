@@ -16,7 +16,7 @@ import {
 } from "react-icons/fi";
 import { addToCart, clearAllCart, removeFromCart } from "../redux/cartSlice";
 import axios from "axios";
-import { serverUrl } from "../App";
+import { glassToast, serverUrl } from "../App";
 
 const MultiCart = () => {
   const navigate = useNavigate();
@@ -107,7 +107,7 @@ const MultiCart = () => {
     );
   }
 
-  // --- GLOBAL CALCULATIONS ---
+  //GLOBAL CALCULATIONS
   let globalItemTotal = 0;
   let globalGstTotal = 0;
   let globalPackingFeeTotal = 0;
@@ -148,7 +148,7 @@ const MultiCart = () => {
   const handlePlaceOrder = async () => {
     try {
       if (!selectedAddress) {
-        alert("Please select a delivery address.");
+        glassToast("Please select a delivery address.", "error");
         navigate("/DeliveryAddressPage");
         return;
       }
@@ -169,12 +169,15 @@ const MultiCart = () => {
       );
 
       if (data.success) {
-        dispatch(clearAllCart())
-        alert("Order placed successfully!");
+        dispatch(clearAllCart());
+        glassToast("Order placed successfully!", "success");
         navigate("/order");
       }
     } catch (error) {
-      alert(error.response?.data?.message || "Failed to place order.");
+      glassToast(
+        error.response?.data?.message || "Failed to place order.",
+        "error"
+      );
     }
   };
 

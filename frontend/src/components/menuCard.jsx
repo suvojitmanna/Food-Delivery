@@ -61,11 +61,10 @@ const MenuCard = () => {
   }, [selectedItem]);
 
   const handleAdd = (item) => {
-    // Ensuring we dispatch the full item object including its shop data
     dispatch(addToCart(item));
   };
 
-  // --- SKELETON LOADER ---
+  //SKELETON LOADER 
   if (loading) {
     return (
       <div className="min-h-screen bg-[#faf9f6] p-4 md:p-8">
@@ -261,7 +260,7 @@ const MenuCard = () => {
                 ) : (
                   <button
                     onClick={() => handleAdd(item)}
-                    className="absolute bottom-[-20px] left-1/2 -translate-x-1/2 bg-white border shadow-lg px-10 py-3 rounded-2xl text-green-600 font-black active:scale-95 transition-transform"
+                    className="absolute bottom-[-20px] left-1/2 -translate-x-1/2 bg-white border shadow-lg px-10 py-3 rounded-2xl text-green-600 font-black active:scale-95 transition-transform cursor-pointer"
                   >
                     ADD
                   </button>

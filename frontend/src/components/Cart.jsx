@@ -17,9 +17,9 @@ import {
   FiEdit3,
   FiHeart,
 } from "react-icons/fi";
-import { addToCart, removeFromCart } from "../redux/cartSlice";
+import { addToCart, clearAllCart, removeFromCart } from "../redux/cartSlice";
 import axios from "axios";
-import { serverUrl } from "../App";
+import { glassToast, serverUrl } from "../App";
 
 const Cart = () => {
   const [paymentMethod, setPaymentMethod] = useState("COD");
@@ -117,7 +117,7 @@ const Cart = () => {
   const handlePlaceOrder = async () => {
     try {
       if (!selectedAddress) {
-        alert("Please select a delivery address.");
+        glassToast("Please select a delivery address.", "error");
         navigate("/DeliveryAddressPage");
         return;
       }
@@ -145,15 +145,19 @@ const Cart = () => {
         payload,
         {
           withCredentials: true,
-        },
+        }
       );
 
       if (data.success) {
-        alert("Order placed successfully!");
+        dispatch(clearAllCart());
+        glassToast("Order placed successfully!", "success");
         navigate("/order");
       }
     } catch (error) {
-      alert(error.response?.data?.message || "Failed to place order.");
+      glassToast(
+        error.response?.data?.message || "Failed to place order.",
+        "error"
+      );
     }
   };
 

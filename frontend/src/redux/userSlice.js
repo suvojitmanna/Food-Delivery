@@ -14,7 +14,7 @@ const userSlice = createSlice({
         city: null,
         shopInMyCity: null,
         itemsInMyCity: null,
-        myOrders: null
+        myOrders: []
     },
 
     reducers: {
