@@ -136,7 +136,6 @@ const UserOrderPage = ({ orders = [] }) => {
         );
     }
   };
-
   const handleTrackOrder = (orderId) => navigate(`/orders/track/${orderId}`);
 
   const handleReorderItem = (item, shop) => {
@@ -275,7 +274,7 @@ const UserOrderPage = ({ orders = [] }) => {
   return (
     <div className="min-h-screen bg-[#F8FAFC] pb-24 selection:bg-rose-100 selection:text-rose-900 font-sans">
       {/* Premium Glassmorphic Search Header */}
-      <div className="sticky top-0 z-40 bg-white/70 backdrop-blur-xl border-b border-slate-200/50 px-4 py-3 sm:py-4 shadow-[0_4px_30px_rgba(0,0,0,0.03)]">
+      <div className="sticky top-0 z-40 bg-white/70 backdrop-blur-xl border-b border-slate-200/50 px-4 py-3 sm:py-4 shadow-[0_4px_30px_rgba(0,0,0,0.03)] rounded-2xl">
         <div className="max-w-3xl mx-auto relative flex items-center">
           <FiSearch className="absolute left-4 text-slate-400" size={18} />
           <input
@@ -340,6 +339,7 @@ const UserOrderPage = ({ orders = [] }) => {
         {filteredOrders.map((order) => {
           const orderStatus = order?.shopOrders?.[0]?.status?.toLowerCase();
           const isOrderDelivered = orderStatus === "delivered";
+          const isOrderCancelled = orderStatus === "cancelled";
           const primaryShop = order?.shopOrders?.[0]?.shop;
 
           return (
@@ -392,12 +392,15 @@ const UserOrderPage = ({ orders = [] }) => {
                           Order Details
                         </button>
                         <div className="h-px bg-slate-100 my-1 mx-2"></div>
-                        <button
-                          onClick={() => handleDeleteOrder(order._id)}
-                          className="w-full flex items-center gap-3 px-4 py-3 text-sm font-medium text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer"
-                        >
-                          <FiTrash2 size={16} /> Delete Order
-                        </button>
+                        {orderStatus === "delivered" ||
+                          (orderStatus === "cancelled" && (
+                            <button
+                              onClick={() => handleDeleteOrder(order._id)}
+                              className="w-full flex items-center gap-3 px-4 py-3 text-sm font-medium text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer"
+                            >
+                              <FiTrash2 size={16} /> Delete Order
+                            </button>
+                          ))}
                       </div>
                     )}
                   </div>
@@ -481,17 +484,18 @@ const UserOrderPage = ({ orders = [] }) => {
                                 Qty: {item.quantity}
                               </div>
 
-                              {isOrderDelivered && (
-                                <button
-                                  onClick={() =>
-                                    handleReorderItem(item, shopOrder.shop)
-                                  }
-                                  className="text-xs font-bold text-rose-600 hover:text-rose-700 flex items-center gap-1.5 px-2 py-1 rounded-md hover:bg-rose-50 transition-colors cursor-pointer"
-                                >
-                                  <FiRefreshCcw size={12} />
-                                  Reorder
-                                </button>
-                              )}
+                              {isOrderDelivered ||
+                                (isOrderCancelled && (
+                                  <button
+                                    onClick={() =>
+                                      handleReorderItem(item, shopOrder.shop)
+                                    }
+                                    className="text-xs font-bold text-rose-600 hover:text-rose-700 flex items-center gap-1.5 px-2 py-1 rounded-md hover:bg-rose-50 transition-colors cursor-pointer"
+                                  >
+                                    <FiRefreshCcw size={12} />
+                                    Reorder
+                                  </button>
+                                ))}
                             </div>
                           </div>
                         </div>
@@ -520,7 +524,7 @@ const UserOrderPage = ({ orders = [] }) => {
                     Details
                   </button>
 
-                  {isOrderDelivered ? (
+                  {isOrderDelivered || isOrderCancelled ? (
                     <button
                       onClick={() => handleReorderAll(order)}
                       className="flex-1 sm:flex-none px-6 py-3 rounded-xl bg-rose-600 text-white font-bold text-sm hover:bg-rose-700 transition-all flex items-center justify-center gap-2 active:scale-95 shadow-[0_4px_14px_0_rgba(225,29,72,0.39)] cursor-pointer"

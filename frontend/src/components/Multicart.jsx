@@ -17,6 +17,7 @@ import {
 import { addToCart, clearAllCart, removeFromCart } from "../redux/cartSlice";
 import axios from "axios";
 import { glassToast, serverUrl } from "../App";
+import { addMyOrder } from "../redux/userSlice";
 
 const MultiCart = () => {
   const navigate = useNavigate();
@@ -37,7 +38,7 @@ const MultiCart = () => {
 
   // Filter out empty carts and format as an array of [shopId, cartData]
   const activeCarts = Object.entries(allCarts || {}).filter(
-    ([, cart]) => cart.items && Object.keys(cart.items).length > 0
+    ([, cart]) => cart.items && Object.keys(cart.items).length > 0,
   );
 
   // Click outside listener for addresses
@@ -142,7 +143,7 @@ const MultiCart = () => {
       globalPackingFeeTotal +
       deliveryFee +
       tipAmount -
-      couponDiscount
+      couponDiscount,
   );
 
   const handlePlaceOrder = async () => {
@@ -165,18 +166,19 @@ const MultiCart = () => {
       const { data } = await axios.post(
         `${serverUrl}/api/order/place-order`,
         payload,
-        { withCredentials: true }
+        { withCredentials: true },
       );
 
       if (data.success) {
         dispatch(clearAllCart());
+        dispatch(addMyOrder(data.order));
         glassToast("Order placed successfully!", "success");
         navigate("/order");
       }
     } catch (error) {
       glassToast(
         error.response?.data?.message || "Failed to place order.",
-        "error"
+        "error",
       );
     }
   };
@@ -310,7 +312,7 @@ const MultiCart = () => {
           const shopItems = Object.values(cart.items);
           const shopSubtotal = shopItems.reduce(
             (sum, item) => sum + item.price * item.quantity,
-            0
+            0,
           );
 
           return (
@@ -350,7 +352,9 @@ const MultiCart = () => {
                         <div className="flex items-center gap-3 bg-red-50/50 border border-red-100 rounded-lg p-1">
                           <button
                             onClick={() =>
-                              dispatch(removeFromCart({ shopId, itemId: item._id }))
+                              dispatch(
+                                removeFromCart({ shopId, itemId: item._id }),
+                              )
                             }
                             className="w-7 h-7 flex items-center justify-center rounded-md text-red-600 bg-white shadow-sm"
                           >
@@ -364,7 +368,9 @@ const MultiCart = () => {
                             {item.quantity}
                           </span>
                           <button
-                            onClick={() => dispatch(addToCart({ ...item, shopId }))}
+                            onClick={() =>
+                              dispatch(addToCart({ ...item, shopId }))
+                            }
                             className="w-7 h-7 flex items-center justify-center rounded-md text-red-600 bg-white shadow-sm"
                           >
                             <FiPlus size={14} />
@@ -461,7 +467,9 @@ const MultiCart = () => {
                   onChange={(e) => setPaymentMethod(e.target.value)}
                   className="w-4 h-4 text-green-600 border-gray-300 focus:ring-green-500"
                 />
-                <span className="font-bold text-gray-700 text-sm">{method}</span>
+                <span className="font-bold text-gray-700 text-sm">
+                  {method}
+                </span>
               </label>
             ))}
           </div>

@@ -68,7 +68,7 @@ export const placeOrder = async (req, res) => {
             })
         );
 
-        const newOrder = await Order.create({
+        const createdOrder = await Order.create({
             user: req.userId,
             paymentMethod,
             deliveryAddress,
@@ -76,9 +76,14 @@ export const placeOrder = async (req, res) => {
             shopOrders,
         });
 
+        const order = await Order.findById(createdOrder._id)
+            .populate("deliveryAddress")
+            .populate("shopOrders.shop")
+            .populate("shopOrders.owner");
+
         return res.status(201).json({
             success: true,
-            order: newOrder,
+            order,
         });
     } catch (error) {
         console.error(error);

@@ -20,6 +20,7 @@ import {
 import { addToCart, clearAllCart, removeFromCart } from "../redux/cartSlice";
 import axios from "axios";
 import { glassToast, serverUrl } from "../App";
+import { addMyOrder } from "../redux/userSlice";
 
 const Cart = () => {
   const [paymentMethod, setPaymentMethod] = useState("COD");
@@ -150,6 +151,7 @@ const Cart = () => {
 
       if (data.success) {
         dispatch(clearAllCart());
+        dispatch(addMyOrder(data.order));
         glassToast("Order placed successfully!", "success");
         navigate("/order");
       }
