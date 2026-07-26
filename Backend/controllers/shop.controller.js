@@ -8,6 +8,8 @@ export const createOrEditShop = async (req, res) => {
             city,
             state,
             address,
+            latitude,
+            longitude,
             description,
             rating,
             totalReviews,
@@ -21,7 +23,9 @@ export const createOrEditShop = async (req, res) => {
             !name ||
             !city ||
             !state ||
-            !address
+            !address ||
+            latitude == null ||
+            longitude == null
         ) {
             return res.status(400).json({
                 success: false,
@@ -63,6 +67,10 @@ export const createOrEditShop = async (req, res) => {
                 city,
                 state,
                 address,
+                location: {
+                    latitude,
+                    longitude,
+                },
                 description,
                 rating,
                 totalReviews,
@@ -96,6 +104,10 @@ export const createOrEditShop = async (req, res) => {
         shop.city = city || shop.city;
         shop.state = state || shop.state;
         shop.address = address || shop.address;
+        shop.location = {
+            latitude: Number(latitude),
+            longitude: Number(longitude),
+        };
         shop.description = description || shop.description;
         shop.rating = rating || shop.rating;
         shop.totalReviews = totalReviews || shop.totalReviews;

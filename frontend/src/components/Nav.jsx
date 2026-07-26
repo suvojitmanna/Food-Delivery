@@ -109,11 +109,22 @@ const Nav = () => {
       .filter(Boolean)
       .join(", ") || "Set Location";
 
+  // User: Active Orders
   const activeOrders =
     myOrders?.filter((order) =>
       order.shopOrders?.some(
         (shopOrder) => shopOrder.status?.toLowerCase() !== "delivered",
       ),
+    ) || [];
+
+  // Owner: Pending Orders
+  const ownerPendingOrders =
+    myOrders?.filter(
+      (order) =>
+        order.status?.toLowerCase() === "pending" ||
+        order.shopOrders?.some(
+          (shopOrder) => shopOrder.status?.toLowerCase() === "pending",
+        ),
     ) || [];
 
   return (
@@ -226,7 +237,7 @@ const Nav = () => {
                   <TbReceipt2 size={20} className="shrink-0" />
                   <span>My Orders</span>
                   <span className="absolute -top-1 -right-1 bg-[#ff4d2d] text-white text-[10px] font-bold w-5 h-5 rounded-full flex items-center justify-center shadow-lg">
-                    0
+                    {ownerPendingOrders.length}
                   </span>
                 </motion.button>
               </>

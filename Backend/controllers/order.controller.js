@@ -99,39 +99,44 @@ export const getPlaceOrder = async (req, res) => {
     try {
         const user = await User.findById(req.userId).select("role");
 
-        if (!user) {
-            return res.status(404).json({
-                success: false,
-                message: "User not found",
-            });
-        }
-
-        let orders;
+        let orders = [];
+        let filteredOrders = [];
 
         if (user.role === "user") {
-            // Customer orders
             orders = await Order.find({ user: req.userId })
-                .populate("shopOrders.shop", "name image address")
+                .populate("deliveryAddress")
+                .populate("shopOrders.shop", "name image address location")
                 .populate("shopOrders.owner", "name email mobile")
                 .sort({ createdAt: -1 });
+
+            filteredOrders = orders;
         } else {
-            // Shop owner orders
             orders = await Order.find({
                 "shopOrders.owner": req.userId,
             })
                 .populate("deliveryAddress")
-                .populate("shopOrders.shop", "name image address")
+                .populate("shopOrders.shop", "name image address location")
                 .populate("shopOrders.owner", "name email mobile")
                 .populate("user", "name email mobile")
                 .sort({ createdAt: -1 });
+
+            filteredOrders = orders.map((order) => ({
+                _id: order._id,
+                paymentMethod: order.paymentMethod,
+                user: order.user,
+                deliveryAddress: order.deliveryAddress,
+                createdAt: order.createdAt,
+                shopOrders: order.shopOrders.filter((o) =>
+                    o.owner._id.equals(req.userId)
+                ),
+            }));
         }
 
         return res.status(200).json({
             success: true,
-            totalOrders: orders.length,
-            orders,
+            totalOrders: filteredOrders.length,
+            orders: filteredOrders,
         });
-
     } catch (error) {
         console.error("Get Orders Error:", error);
 

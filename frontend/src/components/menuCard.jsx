@@ -7,7 +7,6 @@ import { useDispatch, useSelector } from "react-redux";
 import { addToCart, removeFromCart } from "../redux/cartSlice";
 
 const MenuCard = () => {
-  // Consolidate useParams
   const { id, shopId } = useParams();
   const modalRef = useRef();
   const [expandedItem, setExpandedItem] = useState(null);
@@ -21,19 +20,15 @@ const MenuCard = () => {
     (state) => state.user,
   );
 
-  // Find the current shop based on the URL parameter
   const shop = shopInMyCity?.find((item) => item._id === (id || shopId));
 
-  // Filter items for this specific shop
   const filteredItems = itemsInMyCity?.filter(
-    (item) => item.shop._id === shop?._id,
-  );
+  (item) => item.shop && item.shop._id.toString() === shop?._id?.toString()
+);
 
-  // Get the cart for this specific shop
   const currentShopCart = carts[shop?._id] || { items: {} };
   const cartCount = currentShopCart.items;
 
-  // Calculate totals
   const totalItems = Object.values(cartCount).reduce(
     (sum, item) => sum + item.quantity,
     0,
