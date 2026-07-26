@@ -175,3 +175,40 @@ export const deleteOrder = async (req, res) => {
         });
     }
 };
+
+export const updateOrderStatus = async (req, res) => {
+    try {
+        const { orderId, shopId } = req.params;
+        const { status } = req.body;
+
+        const order = await Order.findById(orderId);
+
+        if (!order) {
+            return res.status(404).json({
+                success: false,
+                message: "Order not found",
+            });
+        }
+        const shopOrder = order.shopOrders.find(
+            (o) => o.shop.toString() === shopId
+        );
+        if (!shopOrder) {
+            return res.status(404).json({
+                success: false,
+                message: "Shop order not found",
+            });
+        }
+        shopOrder.status = status;
+        await order.save();
+        return res.status(200).json({
+            success: true,
+            message: "Order status updated successfully",
+            shopOrder,
+        });
+    } catch (error) {
+        return res.status(500).json({
+            success: false,
+            message: error.message,
+        });
+    }
+};

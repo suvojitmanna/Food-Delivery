@@ -22,6 +22,10 @@ import {
   MdHomeWork,
   MdDirectionsBike,
 } from "react-icons/md";
+import axios from "axios";
+import { serverUrl } from "../App";
+import { useDispatch, useSelector } from "react-redux";
+import { setMyOrders, updateOrderStatus } from "../redux/userSlice";
 
 const calculateDistance = (lat1, lon1, lat2, lon2) => {
   if (!lat1 || !lon1 || !lat2 || !lon2) return null;
@@ -117,10 +121,7 @@ const StatusBadge = ({ status }) => {
   }
 };
 
-const OwnerOrderPage = ({
-  orders = [],
-  shopCoordinates = { lat: 28.7041, lng: 77.1025 },
-}) => {
+const OwnerOrderPage = ({ orders = [] }) => {
   const [searchTerm, setSearchTerm] = useState("");
   const [activeFilter, setActiveFilter] = useState("All");
 
@@ -128,6 +129,9 @@ const OwnerOrderPage = ({
   const [isListening, setIsListening] = useState(false);
   const [hasSpeechSupport, setHasSpeechSupport] = useState(false);
   const recognitionRef = useRef(null);
+
+  const dispatch = useDispatch();
+  const { myOrders } = useSelector((state) => state.user);
 
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -246,13 +250,27 @@ const OwnerOrderPage = ({
     }
   };
 
+  const handleUpdateStatus = async (orderId, shopId, status) => {
+    try {
+      await axios.post(
+        `${serverUrl}/api/order/update-status/${orderId}/${shopId}`,
+        { status },
+        { withCredentials: true },
+      );
+
+      dispatch(updateOrderStatus({ orderId, shopId, status }));
+    } catch (error) {
+      console.log(error);
+    }
+  };
+
   return (
-    <div className="w-full max-w-5xl mx-auto min-h-screen bg-[#f8fafc] p-4 md:p-8 space-y-8 font-sans">
+    <div className="w-full max-w-5xl mx-auto min-h-screen bg-[#f8fafc] p-4 md:p-8 space-y-6 sm:space-y-8 font-sans">
       {/* Header & Controls */}
       <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-6">
         <div>
-          <h1 className="text-2xl font-black text-gray-900 flex items-center gap-3 tracking-tight">
-            <div className="p-2.5 bg-indigo-600 rounded-xl shadow-lg shadow-indigo-200">
+          <h1 className="text-xl sm:text-2xl font-black text-gray-900 flex items-center gap-3 tracking-tight">
+            <div className="p-2 sm:p-2.5 bg-indigo-600 rounded-xl shadow-lg shadow-indigo-200">
               <FiShoppingBag className="text-white" size={20} />
             </div>
             Store Orders
@@ -318,51 +336,53 @@ const OwnerOrderPage = ({
       </div>
 
       {/* Analytics Summary */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
-        <div className="bg-white p-5 rounded-2xl shadow-[0_2px_10px_-3px_rgba(6,81,237,0.1)] border border-gray-100 flex flex-col justify-center hover:-translate-y-1 transition-transform duration-300">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 md:gap-6">
+        <div className="bg-white p-4 sm:p-5 rounded-2xl shadow-[0_2px_10px_-3px_rgba(6,81,237,0.1)] border border-gray-100 flex flex-col justify-center hover:-translate-y-1 transition-transform duration-300">
           <div className="flex items-center gap-2 text-gray-500 mb-2">
             <div className="p-1.5 bg-indigo-50 rounded-lg">
               <FiPackage className="text-indigo-600" size={16} />
             </div>
-            <span className="text-sm font-semibold">Total Orders</span>
+            <span className="text-xs sm:text-sm font-semibold">
+              Total Orders
+            </span>
           </div>
-          <span className="text-3xl font-black text-gray-800">
+          <span className="text-2xl sm:text-3xl font-black text-gray-800">
             {summaryStats.totalOrders}
           </span>
         </div>
 
-        <div className="bg-white p-5 rounded-2xl shadow-[0_2px_10px_-3px_rgba(6,81,237,0.1)] border border-gray-100 flex flex-col justify-center hover:-translate-y-1 transition-transform duration-300">
+        <div className="bg-white p-4 sm:p-5 rounded-2xl shadow-[0_2px_10px_-3px_rgba(6,81,237,0.1)] border border-gray-100 flex flex-col justify-center hover:-translate-y-1 transition-transform duration-300">
           <div className="flex items-center gap-2 text-gray-500 mb-2">
             <div className="p-1.5 bg-green-50 rounded-lg">
               <FiPieChart className="text-green-600" size={16} />
             </div>
-            <span className="text-sm font-semibold">Delivered</span>
+            <span className="text-xs sm:text-sm font-semibold">Delivered</span>
           </div>
-          <span className="text-3xl font-black text-gray-800">
+          <span className="text-2xl sm:text-3xl font-black text-gray-800">
             {summaryStats.deliveredPct}%
           </span>
         </div>
 
-        <div className="bg-white p-5 rounded-2xl shadow-[0_2px_10px_-3px_rgba(6,81,237,0.1)] border border-gray-100 flex flex-col justify-center hover:-translate-y-1 transition-transform duration-300">
+        <div className="bg-white p-4 sm:p-5 rounded-2xl shadow-[0_2px_10px_-3px_rgba(6,81,237,0.1)] border border-gray-100 flex flex-col justify-center hover:-translate-y-1 transition-transform duration-300">
           <div className="flex items-center gap-2 text-gray-500 mb-2">
             <div className="p-1.5 bg-rose-50 rounded-lg">
               <FiXCircle className="text-rose-600" size={16} />
             </div>
-            <span className="text-sm font-semibold">Cancelled</span>
+            <span className="text-xs sm:text-sm font-semibold">Cancelled</span>
           </div>
-          <span className="text-3xl font-black text-gray-800">
+          <span className="text-2xl sm:text-3xl font-black text-gray-800">
             {summaryStats.cancelledPct}%
           </span>
         </div>
 
-        <div className="bg-white p-5 rounded-2xl shadow-[0_2px_10px_-3px_rgba(6,81,237,0.1)] border border-gray-100 flex flex-col justify-center hover:-translate-y-1 transition-transform duration-300">
+        <div className="bg-white p-4 sm:p-5 rounded-2xl shadow-[0_2px_10px_-3px_rgba(6,81,237,0.1)] border border-gray-100 flex flex-col justify-center hover:-translate-y-1 transition-transform duration-300">
           <div className="flex items-center gap-2 text-gray-500 mb-2">
             <div className="p-1.5 bg-amber-50 rounded-lg">
               <FiTrendingUp className="text-amber-600" size={16} />
             </div>
-            <span className="text-sm font-semibold">Revenue</span>
+            <span className="text-xs sm:text-sm font-semibold">Revenue</span>
           </div>
-          <span className="text-3xl font-black text-gray-800 truncate">
+          <span className="text-2xl sm:text-3xl font-black text-gray-800 truncate">
             ₹{summaryStats.totalRevenue.toLocaleString()}
           </span>
         </div>
@@ -396,42 +416,45 @@ const OwnerOrderPage = ({
             return (
               <div
                 key={order._id || Math.random()}
-                className="flex flex-col p-6 bg-white border border-gray-100 rounded-2xl shadow-[0_4px_20px_-4px_rgba(0,0,0,0.05)] hover:shadow-[0_8px_30px_-4px_rgba(0,0,0,0.08)] transition-all duration-300 gap-5"
+                className="flex flex-col p-4 sm:p-6 bg-white border border-gray-100 rounded-2xl shadow-[0_4px_20px_-4px_rgba(0,0,0,0.05)] hover:shadow-[0_8px_30px_-4px_rgba(0,0,0,0.08)] transition-all duration-300 gap-4 sm:gap-5"
               >
                 {/* Top: ID & Date */}
-                <div className="flex justify-between items-start pb-3 border-b border-gray-500">
+                <div className="flex flex-wrap sm:flex-nowrap justify-between items-start pb-3 border-b border-gray-500 gap-3">
                   <div>
-                    <span className="text-xs text-indigo-500 font-black uppercase tracking-widest bg-indigo-50 px-2 py-1 rounded-md">
+                    <span className="text-xs text-indigo-500 font-black uppercase tracking-widest bg-indigo-50 px-2 py-1 rounded-md inline-block">
                       #{order._id?.slice(-6) || "N/A"}
                     </span>
-                    <p className="text-sm text-gray-400 mt-2 font-medium">
+                    <p className="text-xs sm:text-sm text-gray-400 mt-2 font-medium">
                       {date.toLocaleString()}
                     </p>
                   </div>
-                  <StatusBadge status={status} />
+                  <div className="shrink-0">
+                    <StatusBadge status={status} />
+                  </div>
                 </div>
+
                 {/* Customer Details */}
                 <div>
-                  <h2 className="text-sm font-bold text-gray-900 flex items-center gap-2 mb-2.5 capitalize">
-                    <MdHomeWork className="text-gray-400" size={18} />
-                    {address?.receiverName || "Unknown Customer"}
+                  <h2 className="text-sm font-bold text-gray-900 flex flex-wrap items-center gap-2 mb-2.5 capitalize">
+                    <MdHomeWork className="text-gray-400 shrink-0" size={18} />
+                    <span>{address?.receiverName || "Unknown Customer"}</span>
                     {address?.addressType === "Home" ? (
-                      <span className="ml-1 text-[10px] px-2.5 py-0.5 bg-gray-100 text-green-600 rounded-full font-bold uppercase tracking-wider">
+                      <span className="ml-1 text-[10px] px-2.5 py-0.5 bg-gray-100 text-green-600 rounded-full font-bold uppercase tracking-wider shrink-0">
                         {address.addressType}
                       </span>
                     ) : (
-                      <span className="ml-1 text-[10px] px-2.5 py-0.5 bg-gray-100 text-red-600 rounded-full font-bold uppercase tracking-wider">
+                      <span className="ml-1 text-[10px] px-2.5 py-0.5 bg-gray-100 text-red-600 rounded-full font-bold uppercase tracking-wider shrink-0">
                         {address.addressType}
                       </span>
                     )}
                   </h2>
-                  <div className="text-sm text-gray-500 space-y-2 ml-7 font-medium border-l-2 border-gray-100 pl-3">
+                  <div className="text-xs sm:text-sm text-gray-500 space-y-2 ml-7 font-medium border-l-2 border-gray-100 pl-3">
                     <p className="flex items-start gap-2">
                       <MdLocationOn
                         className="mt-0.5 text-gray-400 shrink-0"
                         size={16}
                       />
-                      <span>
+                      <span className="break-words">
                         {address?.flatNo}, {address?.buildingName}
                         <br />
                         {address?.streetArea}, {address?.areaName}
@@ -444,12 +467,12 @@ const OwnerOrderPage = ({
 
                     {/*Distance and Time Badge */}
                     {distanceKm !== null && (
-                      <div className="flex items-center gap-3 mt-2 mb-1 text-[11px] font-bold text-indigo-700 bg-indigo-50/70 w-fit px-3 py-1.5 rounded-lg border border-indigo-100">
+                      <div className="flex flex-wrap items-center gap-2 sm:gap-3 mt-2 mb-1 text-[10px] sm:text-[11px] font-bold text-indigo-700 bg-indigo-50/70 w-fit px-3 py-1.5 rounded-lg border border-indigo-100">
                         <span className="flex items-center gap-1">
                           <FiNavigation size={13} className="text-indigo-500" />{" "}
                           {distanceKm.toFixed(1)} km away
                         </span>
-                        <span className="w-1 h-1 rounded-full bg-indigo-300"></span>
+                        <span className="hidden sm:block w-1 h-1 rounded-full bg-indigo-300"></span>
                         <span className="flex items-center gap-1">
                           <MdDirectionsBike
                             size={14}
@@ -464,25 +487,25 @@ const OwnerOrderPage = ({
 
                 {/* Products */}
                 <div className="mt-1">
-                  <div className="flex overflow-x-auto gap-4 scrollbar-hide">
+                  <div className="flex overflow-x-auto gap-3 sm:gap-4 scrollbar-hide pb-2">
                     {items.map((item) => (
                       <div
                         key={item.id || item.name}
-                        className="border border-gray-200 shadow-sm rounded-xl overflow-hidden min-w-[150px] max-w-[160px] flex-shrink-0 bg-white"
+                        className="border border-gray-200 shadow-sm rounded-xl overflow-hidden min-w-[130px] sm:min-w-[150px] max-w-[140px] sm:max-w-[160px] flex-shrink-0 bg-white"
                       >
                         <div className="p-2">
                           <img
                             src={item.image}
                             alt={item.name}
-                            className="w-full h-28 object-cover bg-gray-100 rounded-lg"
+                            className="w-full h-24 sm:h-28 object-cover bg-gray-100 rounded-lg"
                           />
                         </div>
                         <hr className="shadow-xl text-gray-600" />
                         <div className="px-3 pb-3 pt-1 border-t border-gray-100 bg-gray-50">
-                          <h3 className="text-[15px] font-semibold text-gray-900 truncate tracking-tight">
+                          <h3 className="text-[14px] sm:text-[15px] font-semibold text-gray-900 truncate tracking-tight">
                             {item.name || "Item"}
                           </h3>
-                          <p className="text-[13px] text-gray-500 mt-0.5">
+                          <p className="text-[12px] sm:text-[13px] text-gray-500 mt-0.5">
                             Qty: {item.quantity}{" "}
                             <span className="font-bold">
                               ₹{item.price || 199}
@@ -497,25 +520,44 @@ const OwnerOrderPage = ({
                 {/* Footer Controls & Total */}
                 <div className="flex flex-col gap-4 pt-4 border-t border-gray-600">
                   <div className="flex flex-col sm:flex-row justify-between sm:items-center bg-gray-50/80 p-3.5 rounded-xl border border-gray-100 gap-3">
-                    <div className="text-sm font-bold text-gray-600 flex items-center gap-2">
-                      Current Phase:
-                      <span
-                        className={`capitalize px-2 py-0.5 rounded bg-white border ${statusBorderColor} ${statusTextColor} shadow-sm`}
-                      >
-                        {status}
-                      </span>
+                    <div className="text-sm font-bold text-gray-600 flex flex-wrap sm:flex-nowrap items-center gap-2">
+                      Payment Method:
+                      <div className="flex flex-wrap items-center gap-2 capitalize px-2.5 py-1 rounded-lg bg-white border border-gray-200 shadow-sm text-gray-800 mt-1 sm:mt-0">
+                        <span className="text-indigo-400">
+                          {order.paymentMethod?.toLowerCase() === "cod"
+                            ? "Cash on Delivery"
+                            : "Online"}
+                        </span>
+
+                        <span className="text-gray-300">|</span>
+
+                        <span
+                          className={
+                            order.paymentStatus?.toLowerCase() === "paid" ||
+                            order.paymentStatus?.toLowerCase() === "success"
+                              ? "text-green-600"
+                              : "text-amber-500"
+                          }
+                        >
+                          {order.paymentStatus || "Pending"}
+                        </span>
+                      </div>
                     </div>
 
-                    <div className="flex items-center gap-3">
+                    <div className="flex flex-col sm:flex-row sm:items-center gap-3 w-full sm:w-auto mt-2 sm:mt-0">
                       <div className="text-sm text-gray-500 font-semibold hidden sm:block">
                         Action:
                       </div>
                       <select
-                        value={status}
+                        value={shopOrder.status}
                         onChange={(e) =>
-                          console.log("Status updated to:", e.target.value)
+                          handleUpdateStatus(
+                            order._id,
+                            shopOrder.shop._id,
+                            e.target.value,
+                          )
                         }
-                        className={`px-4 py-2 border ${statusBorderColor} ${statusTextColor} rounded-lg text-sm bg-white focus:outline-none focus:ring-4 focus:ring-opacity-20 capitalize cursor-pointer font-bold shadow-sm transition-all w-full sm:w-auto`}
+                        className={`w-full sm:w-auto px-4 py-2 border ${statusBorderColor} ${statusTextColor} rounded-lg text-sm bg-white focus:outline-none focus:ring-4 focus:ring-opacity-20 capitalize cursor-pointer font-bold shadow-sm transition-all`}
                       >
                         <option value="pending">Pending</option>
                         <option value="accepted">Accepted</option>
@@ -525,21 +567,20 @@ const OwnerOrderPage = ({
                         <option value="out for delivery">
                           Out for Delivery
                         </option>
-                        <option value="delivered">Delivered</option>
                         <option value="cancelled">Cancelled</option>
                       </select>
                     </div>
                   </div>
 
-                  <div className="flex justify-between items-center px-1">
-                    <p className="font-medium text-gray-500">
+                  <div className="flex flex-wrap sm:flex-nowrap justify-between items-center px-1 gap-4 mt-2 sm:mt-0">
+                    <p className="font-medium text-gray-500 w-full sm:w-auto text-center sm:text-left">
                       Total Amount:{" "}
                       <span className="text-gray-900 font-black text-xl ml-1 tracking-tight">
                         ₹{orderTotal.toLocaleString()}
                       </span>
                     </p>
 
-                    <button className="text-sm font-bold text-indigo-600 bg-indigo-50 px-5 py-2.5 rounded-xl hover:bg-indigo-600 hover:text-white transition-all duration-300 flex items-center gap-2 cursor-pointer shadow-sm">
+                    <button className="w-full sm:w-auto text-sm font-bold text-indigo-600 bg-indigo-50 px-5 py-2.5 rounded-xl hover:bg-indigo-600 hover:text-white transition-all duration-300 flex items-center justify-center gap-2 cursor-pointer shadow-sm">
                       <FiTruck size={16} />
                       Track Order
                     </button>
@@ -549,7 +590,7 @@ const OwnerOrderPage = ({
             );
           })
         ) : (
-          <div className="col-span-full py-20 flex flex-col items-center justify-center text-gray-400 bg-white rounded-2xl border-2 border-gray-100 border-dashed shadow-sm">
+          <div className="col-span-full py-20 flex flex-col items-center justify-center text-gray-400 bg-white rounded-2xl border-2 border-gray-100 border-dashed shadow-sm px-4 text-center">
             <div className="p-4 bg-gray-50 rounded-full mb-4">
               <FiPackage size={40} className="text-gray-300" />
             </div>
@@ -562,7 +603,7 @@ const OwnerOrderPage = ({
             {isFiltering && (
               <button
                 onClick={handleClearFilters}
-                className="mt-6 px-6 py-2.5 bg-indigo-600 text-white rounded-xl text-sm font-bold shadow-md hover:bg-indigo-700 transition-colors hover:shadow-lg"
+                className="mt-6 px-6 py-2.5 bg-indigo-600 text-white rounded-xl text-sm font-bold shadow-md hover:bg-indigo-700 transition-colors hover:shadow-lg w-full sm:w-auto"
               >
                 Clear All Filters
               </button>
