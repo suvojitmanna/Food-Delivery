@@ -13,7 +13,7 @@ import {
 import { useDispatch, useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
 import { AnimatePresence, motion } from "framer-motion";
-import { serverUrl } from "../App";
+import { glassToast, serverUrl } from "../App";
 import axios from "axios";
 import { setMyShopData } from "../redux/ownerSlice";
 import { GrUpdate } from "react-icons/gr";
@@ -85,6 +85,7 @@ const CreateEditShop = () => {
   const [backendImage, setBackendImage] = useState(null);
   const [frontendImage, setFrontendImage] = useState(myShopData?.image || null);
   const [isLoading, setIsLoading] = useState(false);
+  // At the top of CreateEditShop:
 
   // Map & Location States
   const [position, setPosition] = useState([
@@ -156,30 +157,43 @@ const CreateEditShop = () => {
     }
   };
 
-  const handleDetectLocation = () => {
+const handleDetectLocation = async () => {
+  try {
     setIsDetecting(true);
+
     if (!navigator.geolocation) {
-      alert("Geolocation not supported.");
-      setIsDetecting(false);
+      glassToast("Geolocation is not supported.", "error");
       return;
     }
 
     navigator.geolocation.getCurrentPosition(
-      (positionData) => {
-        const newLat = positionData.coords.latitude;
-        const newLon = positionData.coords.longitude;
-        setPosition([newLat, newLon]);
-        fetchAddressFromCoords(newLat, newLon);
-        setIsDetecting(false);
+      async (positionData) => {
+        const lat = positionData.coords.latitude;
+        const lon = positionData.coords.longitude;
+
+        setPosition([lat, lon]);
+        await fetchAddressFromCoords(lat, lon);
         setShowSuggestions(false);
+
+        glassToast("Current location detected.", "success");
       },
-      () => {
-        alert("Please allow location permission.");
-        setIsDetecting(false);
+      (error) => {
+        console.error("Geolocation Error:", error);
+        // ... error handling
       },
-      { enableHighAccuracy: true, timeout: 10000 },
+      {
+        enableHighAccuracy: false,
+        timeout: 30000,
+        maximumAge: 60000,
+      },
     );
-  };
+  } catch (err) {
+    console.error(err);
+    glassToast("Failed to detect location.", "error");
+  } finally {
+    setIsDetecting(false);
+  }
+};
 
   const eventHandlers = useRef({
     dragend() {

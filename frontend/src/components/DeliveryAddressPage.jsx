@@ -11,8 +11,6 @@ import {
   FiSearch,
   FiX,
   FiNavigation,
-  FiCheckCircle, // Added for toast
-  FiAlertCircle, // Added for toast
 } from "react-icons/fi";
 import { MapContainer, Marker, TileLayer, useMap } from "react-leaflet";
 import { useSelector } from "react-redux";
@@ -20,7 +18,6 @@ import "leaflet/dist/leaflet.css";
 import L from "leaflet";
 import axios from "axios";
 import { glassToast, serverUrl } from "../App";
-import toast from "react-hot-toast"; // Imported react-hot-toast
 
 // Custom pin
 const customIcon = L.divIcon({
@@ -121,9 +118,10 @@ const DeliveryAddressPage = () => {
         const place = data.features[0].properties;
         setFormData((prev) => ({
           ...prev,
-          streetArea: place.formatted,
+          streetArea: place.formatted || place.address_line2,
           buildingName: place.name || "",
-          areaName: place.suburb || place.city || place.state || "",
+          areaName:
+            place.county || place.suburb || place.city || place.state || "",
         }));
       }
     } catch (error) {

@@ -15,6 +15,7 @@ import {
   FiMic,
   FiMicOff,
   FiNavigation,
+  FiUser,
 } from "react-icons/fi";
 import {
   MdPhone,
@@ -25,11 +26,11 @@ import {
 import axios from "axios";
 import { serverUrl } from "../App";
 import { useDispatch, useSelector } from "react-redux";
-import { setMyOrders, updateOrderStatus } from "../redux/userSlice";
+import { updateOrderStatus } from "../redux/userSlice";
 
 const calculateDistance = (lat1, lon1, lat2, lon2) => {
   if (!lat1 || !lon1 || !lat2 || !lon2) return null;
-  const R = 6371; // Earth's radius in km
+  const R = 6371;
   const dLat = (lat2 - lat1) * (Math.PI / 180);
   const dLon = (lon2 - lon1) * (Math.PI / 180);
   const a =
@@ -121,17 +122,52 @@ const StatusBadge = ({ status }) => {
   }
 };
 
+const getAvailableStatusOptions = (currentStatus) => {
+  const status = (currentStatus || "pending").toLowerCase();
+
+  const allStatuses = [
+    { value: "pending", label: "Pending" },
+    { value: "accepted", label: "Accepted" },
+    { value: "preparing", label: "Preparing" },
+    { value: "ready", label: "Ready" },
+    { value: "out for delivery", label: "Out for Delivery" },
+    { value: "cancelled", label: "Cancelled" },
+  ];
+
+  if (status === "delivered")
+    return [{ value: "delivered", label: "Delivered" }];
+  if (status === "cancelled")
+    return allStatuses.filter((s) => s.value === "cancelled");
+  if (status === "out for delivery")
+    return allStatuses.filter((s) => s.value === "out for delivery");
+
+  const flow = [
+    "pending",
+    "accepted",
+    "preparing",
+    "ready",
+    "out for delivery",
+  ];
+  const currentIndex = flow.indexOf(status);
+
+  return allStatuses.filter((s) => {
+    if (s.value === "cancelled") return true;
+    const index = flow.indexOf(s.value);
+    return index >= currentIndex;
+  });
+};
+
 const OwnerOrderPage = ({ orders = [] }) => {
+  // Changed to a dictionary to store available boys per order ID
+  const [availableBoysMap, setAvailableBoysMap] = useState({});
   const [searchTerm, setSearchTerm] = useState("");
   const [activeFilter, setActiveFilter] = useState("All");
 
-  // Voice Typing States
   const [isListening, setIsListening] = useState(false);
   const [hasSpeechSupport, setHasSpeechSupport] = useState(false);
   const recognitionRef = useRef(null);
 
   const dispatch = useDispatch();
-  const { myOrders } = useSelector((state) => state.user);
 
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -160,6 +196,13 @@ const OwnerOrderPage = ({ orders = [] }) => {
         };
       }
     }
+
+    // Cleanup function to prevent memory leaks
+    return () => {
+      if (recognitionRef.current) {
+        recognitionRef.current.abort();
+      }
+    };
   }, []);
 
   const toggleListening = () => {
@@ -252,17 +295,59 @@ const OwnerOrderPage = ({ orders = [] }) => {
 
   const handleUpdateStatus = async (orderId, shopId, status) => {
     try {
-      await axios.post(
+      const result = await axios.post(
         `${serverUrl}/api/order/update-status/${orderId}/${shopId}`,
         { status },
         { withCredentials: true },
       );
-
       dispatch(updateOrderStatus({ orderId, shopId, status }));
+
+      // Save available boys specifically for this order
+      if (result.data.availableBoys) {
+        setAvailableBoysMap((prev) => ({
+          ...prev,
+          [orderId]: result.data.availableBoys,
+        }));
+      }
     } catch (error) {
       console.log(error);
     }
   };
+
+  // Modified to accept orderId to match the new dictionary pattern
+  const getAssignment = async (assignmentId, orderId) => {
+    try {
+      const { data } = await axios.get(
+        `${serverUrl}/api/order/assignment/${assignmentId}`,
+        { withCredentials: true },
+      );
+
+      if (data.success) {
+        setAvailableBoysMap((prev) => ({
+          ...prev,
+          [orderId]: data.assignment.broadcastedTo,
+        }));
+      }
+    } catch (error) {
+      console.log(error);
+    }
+  };
+
+  useEffect(() => {
+    const loadAssignments = async () => {
+      for (const order of orders) {
+        const shopOrder = order.shopOrders?.[0];
+
+        if (shopOrder?.status === "out for delivery" && shopOrder?.assignment) {
+          await getAssignment(shopOrder.assignment, order._id);
+        }
+      }
+    };
+
+    if (orders.length > 0) {
+      loadAssignments();
+    }
+  }, [orders]);
 
   return (
     <div className="w-full max-w-5xl mx-auto min-h-screen bg-[#f8fafc] p-4 md:p-8 space-y-6 sm:space-y-8 font-sans">
@@ -300,7 +385,9 @@ const OwnerOrderPage = ({ orders = [] }) => {
               placeholder="Search ID or Name..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className={`w-full pl-10 ${hasSpeechSupport ? "pr-12" : "pr-4"} py-2.5 bg-white border border-gray-200 rounded-xl shadow-sm focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-400 text-sm font-medium transition-all placeholder:text-gray-400`}
+              className={`w-full pl-10 ${
+                hasSpeechSupport ? "pr-12" : "pr-4"
+              } py-2.5 bg-white border border-gray-200 rounded-xl shadow-sm focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-400 text-sm font-medium transition-all placeholder:text-gray-400`}
             />
             {hasSpeechSupport && (
               <button
@@ -327,7 +414,6 @@ const OwnerOrderPage = ({ orders = [] }) => {
             <option value="accepted">Accepted</option>
             <option value="preparing">Preparing</option>
             <option value="ready">Ready</option>
-            <option value="picked">Picked</option>
             <option value="out for delivery">Out for Delivery</option>
             <option value="delivered">Delivered</option>
             <option value="cancelled">Cancelled</option>
@@ -391,7 +477,7 @@ const OwnerOrderPage = ({ orders = [] }) => {
       {/* Orders List */}
       <div className="grid grid-cols-1 gap-6">
         {filteredOrders.length > 0 ? (
-          filteredOrders.map((order) => {
+          filteredOrders.map((order, index) => {
             const shopOrder = order.shopOrders?.[0] || {};
             const status = shopOrder.status || "pending";
             const date = new Date(order.createdAt || Date.now());
@@ -413,13 +499,21 @@ const OwnerOrderPage = ({ orders = [] }) => {
             );
             const estimatedMins = calculateTime(distanceKm);
 
+            const availableOptions = getAvailableStatusOptions(
+              shopOrder.status,
+            );
+            const isLocked = availableOptions.length <= 1;
+
+            // Retrieve available boys specifically for this order
+            const orderAvailableBoys = availableBoysMap[order._id] || [];
+
             return (
               <div
-                key={order._id || Math.random()}
-                className="flex flex-col p-4 sm:p-6 bg-white border border-gray-100 rounded-2xl shadow-[0_4px_20px_-4px_rgba(0,0,0,0.05)] hover:shadow-[0_8px_30px_-4px_rgba(0,0,0,0.08)] transition-all duration-300 gap-4 sm:gap-5"
+                key={order._id || `fallback-order-${index}`}
+                className="flex flex-col p-4 sm:pl-6 sm:pr-6 bg-white border border-gray-100 rounded-2xl shadow-[0_4px_20px_-4px_rgba(0,0,0,0.05)] hover:shadow-[0_8px_30px_-4px_rgba(0,0,0,0.08)] transition-all duration-300 gap-4 sm:gap-2"
               >
                 {/* Top: ID & Date */}
-                <div className="flex flex-wrap sm:flex-nowrap justify-between items-start pb-3 border-b border-gray-500 gap-3">
+                <div className="flex flex-wrap sm:flex-nowrap justify-between items-start pb-3 border-b border-gray-600 gap-3">
                   <div>
                     <span className="text-xs text-indigo-500 font-black uppercase tracking-widest bg-indigo-50 px-2 py-1 rounded-md inline-block">
                       #{order._id?.slice(-6) || "N/A"}
@@ -433,52 +527,114 @@ const OwnerOrderPage = ({ orders = [] }) => {
                   </div>
                 </div>
 
-                {/* Customer Details */}
-                <div>
-                  <h2 className="text-sm font-bold text-gray-900 flex flex-wrap items-center gap-2 mb-2.5 capitalize">
-                    <MdHomeWork className="text-gray-400 shrink-0" size={18} />
-                    <span>{address?.receiverName || "Unknown Customer"}</span>
-                    {address?.addressType === "Home" ? (
-                      <span className="ml-1 text-[10px] px-2.5 py-0.5 bg-gray-100 text-green-600 rounded-full font-bold uppercase tracking-wider shrink-0">
-                        {address.addressType}
-                      </span>
-                    ) : (
-                      <span className="ml-1 text-[10px] px-2.5 py-0.5 bg-gray-100 text-red-600 rounded-full font-bold uppercase tracking-wider shrink-0">
-                        {address.addressType}
-                      </span>
-                    )}
-                  </h2>
-                  <div className="text-xs sm:text-sm text-gray-500 space-y-2 ml-7 font-medium border-l-2 border-gray-100 pl-3">
-                    <p className="flex items-start gap-2">
-                      <MdLocationOn
-                        className="mt-0.5 text-gray-400 shrink-0"
-                        size={16}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-gray-50/50 p-4 rounded-xl">
+                  {/* LEFT: Address & Distance */}
+                  <div>
+                    <h2 className="text-sm font-bold text-gray-900 flex flex-wrap items-center gap-2 mb-2.5 capitalize">
+                      <MdHomeWork
+                        className="text-gray-400 shrink-0"
+                        size={18}
                       />
-                      <span className="break-words">
-                        {address?.flatNo}, {address?.buildingName}
-                        <br />
-                        {address?.streetArea}, {address?.areaName}
-                      </span>
-                    </p>
-                    <p className="flex items-center gap-2">
-                      <MdPhone className="text-gray-400 shrink-0" size={16} />
-                      +91 {address?.mobileNumber}
-                    </p>
-
-                    {/*Distance and Time Badge */}
-                    {distanceKm !== null && (
-                      <div className="flex flex-wrap items-center gap-2 sm:gap-3 mt-2 mb-1 text-[10px] sm:text-[11px] font-bold text-indigo-700 bg-indigo-50/70 w-fit px-3 py-1.5 rounded-lg border border-indigo-100">
-                        <span className="flex items-center gap-1">
-                          <FiNavigation size={13} className="text-indigo-500" />{" "}
-                          {distanceKm.toFixed(1)} km away
+                      <span>{address?.receiverName || "Unknown Customer"}</span>
+                      {address?.addressType === "Home" ? (
+                        <span className="ml-1 text-[10px] px-2.5 py-0.5 bg-gray-100 text-green-600 rounded-full font-bold uppercase tracking-wider shrink-0">
+                          {address.addressType}
                         </span>
-                        <span className="hidden sm:block w-1 h-1 rounded-full bg-indigo-300"></span>
-                        <span className="flex items-center gap-1">
-                          <MdDirectionsBike
-                            size={14}
-                            className="text-indigo-500"
-                          />{" "}
-                          ~{estimatedMins} mins
+                      ) : (
+                        <span className="ml-1 text-[10px] px-2.5 py-0.5 bg-gray-100 text-red-600 rounded-full font-bold uppercase tracking-wider shrink-0">
+                          {address?.addressType || "Other"}
+                        </span>
+                      )}
+                    </h2>
+
+                    <div className="text-xs sm:text-sm text-gray-500 space-y-2 ml-7 font-medium border-l-2 border-gray-200 pl-3">
+                      <p className="flex items-start gap-2">
+                        <MdLocationOn
+                          className="mt-0.5 text-gray-400 shrink-0"
+                          size={16}
+                        />
+                        <span className="break-words">
+                          {address?.flatNo}, {address?.buildingName}
+                          <br />
+                          {address?.streetArea}, {address?.areaName}
+                        </span>
+                      </p>
+
+                      <p className="flex items-center gap-2">
+                        <MdPhone className="text-gray-400 shrink-0" size={16} />
+                        +91 {address?.mobileNumber}
+                      </p>
+
+                      {distanceKm !== null && (
+                        <div className="flex flex-wrap items-center gap-2 sm:gap-3 mt-3 mb-1 text-[10px] sm:text-[11px] font-bold text-indigo-700 bg-indigo-50/70 w-fit px-3 py-1.5 rounded-lg border border-indigo-100">
+                          <span className="flex items-center gap-1">
+                            <FiNavigation
+                              size={13}
+                              className="text-indigo-500"
+                            />{" "}
+                            {distanceKm.toFixed(1)} km away
+                          </span>
+                          <span className="hidden sm:block w-1 h-1 rounded-full bg-indigo-300"></span>
+                          <span className="flex items-center gap-1">
+                            <MdDirectionsBike
+                              size={14}
+                              className="text-indigo-500"
+                            />{" "}
+                            ~{estimatedMins} mins
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* RIGHT: Delivery Partner */}
+                  <div className="md:border-l md:border-gray-200 md:pl-4 pt-4 md:pt-0 border-t border-gray-200 md:border-t-0 flex flex-col">
+                    <h2 className="text-sm font-bold text-gray-900 flex items-center gap-2 mb-2.5">
+                      <MdDirectionsBike
+                        className="text-indigo-500 shrink-0"
+                        size={18}
+                      />
+                      Delivery Partner
+                    </h2>
+
+                    {shopOrder?.deliveryBoy ? (
+                      <div className="text-xs sm:text-sm text-gray-500 space-y-2 ml-7 font-medium border-l-2 border-indigo-100 pl-3">
+                        <p className="flex items-center gap-2">
+                          <FiUser
+                            className="text-gray-400 shrink-0"
+                            size={16}
+                          />
+                          <span className="text-gray-800 font-bold">
+                            {shopOrder.deliveryBoy?.name || "Assigned Partner"}
+                          </span>
+                        </p>
+                        <p className="flex items-center gap-2">
+                          <MdPhone
+                            className="text-gray-400 shrink-0"
+                            size={16}
+                          />
+                          +91{" "}
+                          {shopOrder.deliveryBoy?.mobileNumber ||
+                            shopOrder.deliveryBoy?.phone ||
+                            "N/A"}
+                        </p>
+                        {shopOrder.deliveryBoy?.vehicleNumber && (
+                          <p className="flex items-center gap-2">
+                            <FiTruck
+                              className="text-gray-400 shrink-0"
+                              size={16}
+                            />
+                            <span className="uppercase text-gray-600 bg-gray-100 px-2 py-0.5 rounded text-[10px] font-bold">
+                              {shopOrder.deliveryBoy.vehicleNumber}
+                            </span>
+                          </p>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="flex flex-col items-center justify-center h-full min-h-[80px] ml-7 text-gray-400 bg-gray-50/50 rounded-lg border border-dashed border-gray-200 p-3">
+                        <FiClock size={16} className="opacity-50 mb-1" />
+                        <span className="text-xs font-medium">
+                          Not Assigned Yet
                         </span>
                       </div>
                     )}
@@ -488,9 +644,9 @@ const OwnerOrderPage = ({ orders = [] }) => {
                 {/* Products */}
                 <div className="mt-1">
                   <div className="flex overflow-x-auto gap-3 sm:gap-4 scrollbar-hide pb-2">
-                    {items.map((item) => (
+                    {items.map((item, idx) => (
                       <div
-                        key={item.id || item.name}
+                        key={item.id || item.name || idx}
                         className="border border-gray-200 shadow-sm rounded-xl overflow-hidden min-w-[130px] sm:min-w-[150px] max-w-[140px] sm:max-w-[160px] flex-shrink-0 bg-white"
                       >
                         <div className="p-2">
@@ -518,7 +674,7 @@ const OwnerOrderPage = ({ orders = [] }) => {
                 </div>
 
                 {/* Footer Controls & Total */}
-                <div className="flex flex-col gap-4 pt-4 border-t border-gray-600">
+                <div className="flex flex-col gap-4 pt-4 border-t border-gray-500">
                   <div className="flex flex-col sm:flex-row justify-between sm:items-center bg-gray-50/80 p-3.5 rounded-xl border border-gray-100 gap-3">
                     <div className="text-sm font-bold text-gray-600 flex flex-wrap sm:flex-nowrap items-center gap-2">
                       Payment Method:
@@ -528,9 +684,7 @@ const OwnerOrderPage = ({ orders = [] }) => {
                             ? "Cash on Delivery"
                             : "Online"}
                         </span>
-
                         <span className="text-gray-300">|</span>
-
                         <span
                           className={
                             order.paymentStatus?.toLowerCase() === "paid" ||
@@ -548,8 +702,10 @@ const OwnerOrderPage = ({ orders = [] }) => {
                       <div className="text-sm text-gray-500 font-semibold hidden sm:block">
                         Action:
                       </div>
+
                       <select
                         value={shopOrder.status}
+                        disabled={isLocked}
                         onChange={(e) =>
                           handleUpdateStatus(
                             order._id,
@@ -557,17 +713,17 @@ const OwnerOrderPage = ({ orders = [] }) => {
                             e.target.value,
                           )
                         }
-                        className={`w-full sm:w-auto px-4 py-2 border ${statusBorderColor} ${statusTextColor} rounded-lg text-sm bg-white focus:outline-none focus:ring-4 focus:ring-opacity-20 capitalize cursor-pointer font-bold shadow-sm transition-all`}
+                        className={`w-full sm:w-auto px-4 py-2 border ${statusBorderColor} ${statusTextColor} rounded-lg text-sm bg-white focus:outline-none focus:ring-4 focus:ring-opacity-20 capitalize font-bold shadow-sm transition-all ${
+                          isLocked
+                            ? "cursor-not-allowed opacity-70"
+                            : "cursor-pointer"
+                        }`}
                       >
-                        <option value="pending">Pending</option>
-                        <option value="accepted">Accepted</option>
-                        <option value="preparing">Preparing</option>
-                        <option value="ready">Ready</option>
-                        <option value="picked">Picked Up</option>
-                        <option value="out for delivery">
-                          Out for Delivery
-                        </option>
-                        <option value="cancelled">Cancelled</option>
+                        {availableOptions.map((opt) => (
+                          <option key={opt.value} value={opt.value}>
+                            {opt.label}
+                          </option>
+                        ))}
                       </select>
                     </div>
                   </div>
@@ -586,6 +742,62 @@ const OwnerOrderPage = ({ orders = [] }) => {
                     </button>
                   </div>
                 </div>
+
+                {/* Assigned Delivery boy */}
+                {shopOrder.status === "out for delivery" && (
+                  <div className="mt-3 p-3 border rounded-lg text-sm bg-orange-50 border-orange-100">
+                    <p className="font-semibold text-orange-800 mb-1">
+                      Available Delivery Boys:
+                    </p>
+                    {orderAvailableBoys.length > 0 ? (
+                      orderAvailableBoys.map((b, idx) => {
+                        const boyLat = b?.location?.coordinates?.[1];
+                        const boyLng = b?.location?.coordinates?.[0];
+
+                        const boyDistance = calculateDistance(
+                          shopOrder?.shop?.location?.latitude,
+                          shopOrder?.shop?.location?.longitude,
+                          boyLat,
+                          boyLng,
+                        );
+
+                        return (
+                          <div
+                            key={b._id || idx}
+                            className="flex items-center justify-between py-2 border-b border-orange-200/60 last:border-0"
+                          >
+                            <div>
+                              <p className="text-orange-800 font-bold capitalize">
+                                • {b.fullName}
+                              </p>
+                              <p className="text-orange-600/80 font-medium ml-3 text-xs">
+                                {b.mobile}
+                              </p>
+                            </div>
+
+                            {boyDistance != null && !isNaN(boyDistance) && (
+                              <div className="bg-orange-100 text-orange-800 text-xs px-2.5 py-1 rounded-md font-bold flex items-center gap-1 shadow-sm justify-center whitespace-nowrap">
+                                <p className="text-indigo-500">
+                                  Distance{" "}
+                                  <span className="text-sm font-bold">:</span>
+                                </p>
+                                <FiNavigation
+                                  size={12}
+                                  className="text-orange-600"
+                                />
+                                {boyDistance.toFixed(1)} km
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })
+                    ) : (
+                      <div className="text-orange-600/70 italic mt-2">
+                        No delivery partners available.
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
             );
           })
@@ -603,7 +815,7 @@ const OwnerOrderPage = ({ orders = [] }) => {
             {isFiltering && (
               <button
                 onClick={handleClearFilters}
-                className="mt-6 px-6 py-2.5 bg-indigo-600 text-white rounded-xl text-sm font-bold shadow-md hover:bg-indigo-700 transition-colors hover:shadow-lg w-full sm:w-auto"
+                className="mt-6 px-6 py-2.5 bg-indigo-600 text-white rounded-xl text-sm font-bold shadow-md hover:bg-indigo-700 transition-colors hover:shadow-lg w-full sm:w-auto cursor-pointer"
               >
                 Clear All Filters
               </button>
