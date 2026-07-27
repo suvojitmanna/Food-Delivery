@@ -23,7 +23,7 @@ const useGetCity = () => {
           const locationData = result.data.features[0].properties;
           dispatch(setCity(locationData));
           const results = result?.data?.features[0].properties.address_line2;
-          console.log(result);
+          console.log("user Location:", result);
           dispatch(setAddress(results));
         } catch (error) {
           console.log(error);

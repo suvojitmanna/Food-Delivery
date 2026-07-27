@@ -55,9 +55,28 @@ const userSchema = new mongoose.Schema(
       enum: ["local", "google"],
       default: "local",
     },
+    location: {
+      type: {
+        type: String,
+        enum: ["Point"],
+        default: "Point",
+        required: true,
+      },
+      coordinates: {
+        type: [Number],
+        required: true,
+        validate: {
+          validator: (value) => value.length === 2,
+          message: "Coordinates must contain [longitude, latitude]",
+        },
+        default: [0, 0],
+      },
+    },
   },
   { timestamps: true }
 );
+
+userSchema.index({ location: "2dsphere" })
 
 const User = mongoose.model("User", userSchema)
 export default User

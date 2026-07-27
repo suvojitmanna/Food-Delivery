@@ -58,13 +58,10 @@ function MapUpdater({ lat, lon }) {
   const map = useMap();
 
   useEffect(() => {
-    if (!isNaN(lat) && !isNaN(lon)) {
-      setTimeout(() => {
-        map.invalidateSize();
-        map.setView([lat, lon], 16);
-      }, 100);
-    }
-  }, [lat, lon, map]);
+    map.flyTo([lat, lon], 16, {
+      duration: 1,
+    });
+  }, [lat, lon]);
 
   return null;
 }
@@ -136,29 +133,78 @@ const DeliveryAddressPage = () => {
     }
   };
 
-  const handleDetectLocation = () => {
-    setIsDetecting(true);
-    if (!navigator.geolocation) {
-      glassToast("Geolocation not supported.", "error");
-      setIsDetecting(false);
-      return;
-    }
+  const handleDetectLocation = async () => {
+    try {
+      setIsDetecting(true);
 
-    navigator.geolocation.getCurrentPosition(
-      (positionData) => {
-        const newLat = positionData.coords.latitude;
-        const newLon = positionData.coords.longitude;
-        setPosition([newLat, newLon]);
-        fetchAddressFromCoords(newLat, newLon);
-        setIsDetecting(false);
+      if (
+        location &&
+        location.lat &&
+        location.lon &&
+        !isNaN(location.lat) &&
+        !isNaN(location.lon)
+      ) {
+        const lat = Number(location.lat);
+        const lon = Number(location.lon);
+
+        setPosition([lat, lon]);
+        await fetchAddressFromCoords(lat, lon);
         setShowSuggestions(false);
-      },
-      () => {
-        glassToast("Please allow location permission.", "error");
-        setIsDetecting(false);
-      },
-      { enableHighAccuracy: true, timeout: 10000 },
-    );
+
+        glassToast("Current location detected.", "success");
+        return;
+      }
+      if (!navigator.geolocation) {
+        glassToast("Geolocation is not supported.", "error");
+        return;
+      }
+
+      navigator.geolocation.getCurrentPosition(
+        async (positionData) => {
+          const lat = positionData.coords.latitude;
+          const lon = positionData.coords.longitude;
+
+          setPosition([lat, lon]);
+          await fetchAddressFromCoords(lat, lon);
+          setShowSuggestions(false);
+
+          glassToast("Current location detected.", "success");
+        },
+        (error) => {
+          console.error("Geolocation Error:", error);
+
+          switch (error.code) {
+            case error.PERMISSION_DENIED:
+              glassToast("Location permission denied.", "error");
+              break;
+
+            case error.POSITION_UNAVAILABLE:
+              glassToast("Location unavailable.", "error");
+              break;
+
+            case error.TIMEOUT:
+              glassToast(
+                "Location request timed out. Using saved location if available.",
+                "error",
+              );
+              break;
+
+            default:
+              glassToast("Unable to get current location.", "error");
+          }
+        },
+        {
+          enableHighAccuracy: false,
+          timeout: 30000,
+          maximumAge: 60000,
+        },
+      );
+    } catch (err) {
+      console.error(err);
+      glassToast("Failed to detect location.", "error");
+    } finally {
+      setIsDetecting(false);
+    }
   };
 
   const eventHandlers = useRef({
@@ -354,7 +400,10 @@ const DeliveryAddressPage = () => {
       }
     } catch (error) {
       console.log(error);
-      glassToast(error.response?.data?.message || "Failed to save address.", "error");
+      glassToast(
+        error.response?.data?.message || "Failed to save address.",
+        "error",
+      );
     }
   };
 
@@ -470,7 +519,7 @@ const DeliveryAddressPage = () => {
         <div className="rounded-xl border border-gray-200 overflow-hidden relative shadow-sm">
           <div className="h-56 md:h-72 w-full relative">
             <MapContainer
-              center={[22.5726, 88.3639]}
+              center={position}
               zoom={16}
               style={{ height: "100%", width: "100%" }}
             >
@@ -492,7 +541,7 @@ const DeliveryAddressPage = () => {
               )}
             </MapContainer>
 
-            {/* Building / area name tag, floats above the map */}
+            {/* Building / area name tag */}
             <AnimatePresence>
               {!addressLoading && formData.buildingName && (
                 <motion.div

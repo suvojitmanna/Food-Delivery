@@ -31,6 +31,7 @@ import useGetByCity from "./hooks/useGetByCity";
 import useGetItemByCity from "./hooks/useGetItemByCity";
 import useGetMyOrders from "./hooks/useGetMyOrders";
 import { FiAlertCircle, FiCheckCircle } from "react-icons/fi";
+import UseUpdateLocation from "./hooks/useupdateLocation";
 
 export const serverUrl = import.meta.env.VITE_BASE_URL;
 
@@ -57,7 +58,7 @@ export const glassToast = (message, type = "success") => {
         </span>
       </div>
     ),
-    { duration: 3000, position: "bottom-center" },
+    { duration: 3000, position: "top-center" },
   );
 };
 
@@ -79,6 +80,7 @@ const App = () => {
   }, []);
 
   useGetCurrentUser();
+  UseUpdateLocation()
   useGetCity();
   useGetMyShop();
   useGetByCity();

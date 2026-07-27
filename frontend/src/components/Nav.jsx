@@ -105,11 +105,11 @@ const Nav = () => {
   };
 
   const locationString =
-    [city?.suburb, city?.street, city?.state_district, city?.state]
+    [city.county,city?.suburb, city?.street, city?.state_district, city?.state]
       .filter(Boolean)
       .join(", ") || "Set Location";
 
-  // User: Active Orders
+  // User Active Orders
   const activeOrders =
     myOrders?.filter((order) =>
       order.shopOrders?.some(
@@ -117,7 +117,7 @@ const Nav = () => {
       ),
     ) || [];
 
-  // Owner: Pending Orders
+  // Owner Pending Orders
   const ownerPendingOrders =
     myOrders?.filter(
       (order) =>
