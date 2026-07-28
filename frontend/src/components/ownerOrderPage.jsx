@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect, useRef } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import {
   FiSearch,
   FiCheckCircle,
@@ -27,21 +27,7 @@ import axios from "axios";
 import { serverUrl } from "../App";
 import { useDispatch, useSelector } from "react-redux";
 import { updateOrderStatus } from "../redux/userSlice";
-
-const calculateDistance = (lat1, lon1, lat2, lon2) => {
-  if (!lat1 || !lon1 || !lat2 || !lon2) return null;
-  const R = 6371;
-  const dLat = (lat2 - lat1) * (Math.PI / 180);
-  const dLon = (lon2 - lon1) * (Math.PI / 180);
-  const a =
-    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-    Math.cos(lat1 * (Math.PI / 180)) *
-      Math.cos(lat2 * (Math.PI / 180)) *
-      Math.sin(dLon / 2) *
-      Math.sin(dLon / 2);
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-  return R * c;
-};
+import { calculateDistance } from "../../utils/location";
 
 const calculateTime = (distanceKm, avgSpeedKmh = 30) => {
   if (!distanceKm) return null;
@@ -158,7 +144,6 @@ const getAvailableStatusOptions = (currentStatus) => {
 };
 
 const OwnerOrderPage = ({ orders = [] }) => {
-  // Changed to a dictionary to store available boys per order ID
   const [availableBoysMap, setAvailableBoysMap] = useState({});
   const [searchTerm, setSearchTerm] = useState("");
   const [activeFilter, setActiveFilter] = useState("All");
@@ -197,7 +182,6 @@ const OwnerOrderPage = ({ orders = [] }) => {
       }
     }
 
-    // Cleanup function to prevent memory leaks
     return () => {
       if (recognitionRef.current) {
         recognitionRef.current.abort();
@@ -302,7 +286,6 @@ const OwnerOrderPage = ({ orders = [] }) => {
       );
       dispatch(updateOrderStatus({ orderId, shopId, status }));
 
-      // Save available boys specifically for this order
       if (result.data.availableBoys) {
         setAvailableBoysMap((prev) => ({
           ...prev,
@@ -314,7 +297,6 @@ const OwnerOrderPage = ({ orders = [] }) => {
     }
   };
 
-  // Modified to accept orderId to match the new dictionary pattern
   const getAssignment = async (assignmentId, orderId) => {
     try {
       const { data } = await axios.get(
@@ -491,21 +473,39 @@ const OwnerOrderPage = ({ orders = [] }) => {
             const { text: statusTextColor, border: statusBorderColor } =
               getStatusStyle(status);
 
-            const distanceKm = calculateDistance(
-              shopOrder?.shop?.location?.latitude,
-              shopOrder?.shop?.location?.longitude,
-              address?.latitude,
-              address?.longitude,
-            );
-            const estimatedMins = calculateTime(distanceKm);
-
             const availableOptions = getAvailableStatusOptions(
               shopOrder.status,
             );
             const isLocked = availableOptions.length <= 1;
-
-            // Retrieve available boys specifically for this order
             const orderAvailableBoys = availableBoysMap[order._id] || [];
+
+            //calculate distance for this specific order
+            const shopLat = shopOrder?.shop?.location?.latitude;
+            const shopLng = shopOrder?.shop?.location?.longitude;
+            
+            const customerLat =
+              address?.latitude ||
+              address?.location?.coordinates?.[1] ||
+              address?.location?.lat;
+            const customerLng =
+              address?.longitude ||
+              address?.location?.coordinates?.[0] ||
+              address?.location?.lng;
+
+            let distanceKm = null;
+            let estimatedMins = null;
+
+            if (shopLat && shopLng && customerLat && customerLng) {
+              distanceKm = calculateDistance(
+                shopLat,
+                shopLng,
+                customerLat,
+                customerLng,
+              );
+              if (distanceKm !== null) {
+                estimatedMins = calculateTime(distanceKm);
+              }
+            }
 
             return (
               <div
@@ -565,6 +565,7 @@ const OwnerOrderPage = ({ orders = [] }) => {
                         +91 {address?.mobileNumber}
                       </p>
 
+                      {/* Display the calculated distance and time safely */}
                       {distanceKm !== null && (
                         <div className="flex flex-wrap items-center gap-2 sm:gap-3 mt-3 mb-1 text-[10px] sm:text-[11px] font-bold text-indigo-700 bg-indigo-50/70 w-fit px-3 py-1.5 rounded-lg border border-indigo-100">
                           <span className="flex items-center gap-1">
@@ -644,9 +645,9 @@ const OwnerOrderPage = ({ orders = [] }) => {
                 {/* Products */}
                 <div className="mt-1">
                   <div className="flex overflow-x-auto gap-3 sm:gap-4 scrollbar-hide pb-2">
-                    {items.map((item, idx) => (
+                    {items.map((item, index) => (
                       <div
-                        key={item.id || item.name || idx}
+                        key={item.id || item.name || index}
                         className="border border-gray-200 shadow-sm rounded-xl overflow-hidden min-w-[130px] sm:min-w-[150px] max-w-[140px] sm:max-w-[160px] flex-shrink-0 bg-white"
                       >
                         <div className="p-2">
@@ -746,11 +747,11 @@ const OwnerOrderPage = ({ orders = [] }) => {
                 {/* Assigned Delivery boy */}
                 {shopOrder.status === "out for delivery" && (
                   <div className="mt-3 p-3 border rounded-lg text-sm bg-orange-50 border-orange-100">
-                    <p className="font-semibold text-orange-800 mb-1">
+                    <p className="font-semibold text-orange-800 mb-2">
                       Available Delivery Boys:
                     </p>
                     {orderAvailableBoys.length > 0 ? (
-                      orderAvailableBoys.map((b, idx) => {
+                      orderAvailableBoys.map((b, index) => {
                         const boyLat = b?.location?.coordinates?.[1];
                         const boyLng = b?.location?.coordinates?.[0];
 
@@ -763,20 +764,20 @@ const OwnerOrderPage = ({ orders = [] }) => {
 
                         return (
                           <div
-                            key={b._id || idx}
+                            key={b._id || index}
                             className="flex items-center justify-between py-2 border-b border-orange-200/60 last:border-0"
                           >
                             <div>
                               <p className="text-orange-800 font-bold capitalize">
-                                • {b.fullName}
+                                {index + 1}. {b.fullName}
                               </p>
-                              <p className="text-orange-600/80 font-medium ml-3 text-xs">
+                              <p className="text-orange-600/80 font-medium ml-4 text-xs">
                                 {b.mobile}
                               </p>
                             </div>
 
                             {boyDistance != null && !isNaN(boyDistance) && (
-                              <div className="bg-orange-100 text-orange-800 text-xs px-2.5 py-1 rounded-md font-bold flex items-center gap-1 shadow-sm justify-center whitespace-nowrap">
+                              <div className="bg-orange-100 text-orange-800 text-xs px-2.5 py-1 rounded-md font-bold flex items-center gap-1.5 shadow-sm justify-center whitespace-nowrap">
                                 <p className="text-indigo-500">
                                   Distance{" "}
                                   <span className="text-sm font-bold">:</span>

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
   FiPackage,
   FiTruck,
@@ -13,8 +13,6 @@ import {
   FiMic,
   FiX,
   FiClock,
-  FiCheckCircle,
-  FiAlertCircle,
 } from "react-icons/fi";
 import { FaStore } from "react-icons/fa";
 import { IoIosArrowForward } from "react-icons/io";
@@ -91,18 +89,6 @@ const UserOrderPage = ({ orders = [] }) => {
     }
   };
 
-  const formatDate = (dateString) => {
-    if (!dateString) return "N/A";
-    const date = new Date(dateString);
-    return date.toLocaleDateString("en-GB", {
-      day: "2-digit",
-      month: "short",
-      year: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    });
-  };
-
   const getStatusBadge = (status) => {
     const baseStyle =
       "flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] sm:text-xs font-bold uppercase tracking-wider backdrop-blur-md transition-all whitespace-nowrap";
@@ -117,13 +103,13 @@ const UserOrderPage = ({ orders = [] }) => {
             Delivered
           </span>
         );
-      case "shipped":
       case "out for delivery":
         return (
           <span
-            className={`${baseStyle} bg-blue-50/80 text-blue-700 border border-blue-200/60`}
+            className={`${baseStyle} bg-orange-50/80 text-orange-700 border border-orange-200/60`}
           >
-            <FiTruck size={12} className="text-blue-500" /> Shipped
+            <FiTruck size={12} className="text-orange-500" />
+            Out for Delivery
           </span>
         );
       case "cancelled":
@@ -158,7 +144,6 @@ const UserOrderPage = ({ orders = [] }) => {
   };
 
   const handleTrackOrder = (orderId) => navigate(`/orders/track/${orderId}`);
-
   const handleReorderItem = (item, shop) => {
     const normalizedItem = {
       ...item,
@@ -370,7 +355,7 @@ const UserOrderPage = ({ orders = [] }) => {
             overallStatus = "cancelled";
           } else if (
             allShopStatuses.includes("delivered") ||
-            allShopStatuses.includes("shipped")
+            allShopStatuses.includes("out for delivery")
           ) {
             overallStatus = "partial";
           } else {

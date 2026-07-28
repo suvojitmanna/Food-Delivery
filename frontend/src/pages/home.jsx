@@ -4,13 +4,10 @@ import { useSelector } from "react-redux";
 import UserDashboard from "../components/UserDashboard";
 import OwnerDashboard from "../components/OwnerDashboard";
 import DeliveryBoyDashboard from "../components/DeliveryBoyDashboard";
-import FloatingCartBar from "../components/FloatingCart";
-import CartBottomSheet from "../components/CartBottomSheet";
 
 const Home = () => {
   const { userData } = useSelector((state) => state.user);
-  const [showCartSheet, setShowCartSheet] = useState(false);
-
+  
   useEffect(() => {
     const handleOpen = () => {
       setShowCartSheet(true);

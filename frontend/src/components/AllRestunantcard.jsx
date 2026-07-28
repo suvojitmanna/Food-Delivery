@@ -1,15 +1,21 @@
 import React, { useMemo, useState, useEffect, useRef } from "react";
 import { useSelector } from "react-redux";
 import { motion, AnimatePresence } from "framer-motion";
+import { FaStar, FaClock, FaHeart, FaSearch } from "react-icons/fa";
 import {
-  FaStar,
-  FaClock,
-  FaMotorcycle,
-  FaHeart,
-  FaSearch,
-} from "react-icons/fa";
-import { FiFilter, FiGrid, FiTrendingUp, FiZap, FiAward, FiMic } from "react-icons/fi";
+  FiFilter,
+  FiGrid,
+  FiTrendingUp,
+  FiZap,
+  FiAward,
+  FiMic,
+  FiArrowLeft,
+  FiMapPin,
+  FiArrowRight,
+} from "react-icons/fi";
+import { MdOutlineDirectionsBike } from "react-icons/md";
 import { useNavigate } from "react-router-dom";
+import { calculateShopsDeliveryMetrics } from "../../utils/location";
 
 const FILTER_OPTIONS = [
   "All",
@@ -28,16 +34,64 @@ const CATEGORY_STRIP = [
 ];
 
 const AllRestaurantCard = () => {
+  const navigate = useNavigate();
   const userState = useSelector((state) => state.user);
+  const { userData } = useSelector((state) => state.user);
   const municipality = userState?.city?.municipality || "your city";
-  const shops = userState?.shopInMyCity || [];
-  
+
+  const rawShops = userState?.shopInMyCity || [];
+  const userCoordinates = userData?.location?.coordinates;
+
+  // 1. Properly calculate metrics for all shops FIRST
+  const shops = useMemo(() => {
+    return calculateShopsDeliveryMetrics(rawShops, userCoordinates);
+  }, [rawShops, userCoordinates]);
+
   const [search, setSearch] = useState("");
   const [activeFilter, setActiveFilter] = useState("All");
-  const [favorites, setFavorites] = useState({});
-  const [isListening, setIsListening] = useState(false); // Voice search state
+  const [isListening, setIsListening] = useState(false);
 
-  const recognitionRef = useRef(null); // Ref for Speech API
+  // NEW: Loading State
+  const [isLoading, setIsLoading] = useState(true);
+
+  // NEW: Mouse Drag Scrolling States
+  const filterScrollRef = useRef(null);
+  const [isDragging, setIsDragging] = useState(false);
+  const [startX, setStartX] = useState(0);
+  const [scrollLeft, setScrollLeft] = useState(0);
+
+  // Initialize favorites from Local Storage
+  const [favorites, setFavorites] = useState(() => {
+    try {
+      const savedFavs = localStorage.getItem("userFavorites");
+      return savedFavs ? JSON.parse(savedFavs) : {};
+    } catch (error) {
+      console.error("Error reading favorites from local storage", error);
+      return {};
+    }
+  });
+
+  const recognitionRef = useRef(null);
+
+  // Handle Loading Simulation/Resolution
+  useEffect(() => {
+    if (shops.length > 0) {
+      setIsLoading(false);
+    } else {
+      // Fallback timeout to stop showing skeleton if no data exists
+      const timer = setTimeout(() => setIsLoading(false), 2000);
+      return () => clearTimeout(timer);
+    }
+  }, [shops]);
+
+  // Save favorites to Local Storage whenever it changes
+  useEffect(() => {
+    try {
+      localStorage.setItem("userFavorites", JSON.stringify(favorites));
+    } catch (error) {
+      console.error("Error saving favorites to local storage", error);
+    }
+  }, [favorites]);
 
   const toggleFavorite = (id) => {
     setFavorites((prev) => ({ ...prev, [id]: !prev[id] }));
@@ -85,6 +139,24 @@ const AllRestaurantCard = () => {
     }
   };
 
+  // NEW: Mouse Drag Scrolling Handlers
+  const handleMouseDown = (e) => {
+    setIsDragging(true);
+    setStartX(e.pageX - filterScrollRef.current.offsetLeft);
+    setScrollLeft(filterScrollRef.current.scrollLeft);
+  };
+
+  const handleMouseLeave = () => setIsDragging(false);
+  const handleMouseUp = () => setIsDragging(false);
+
+  const handleMouseMove = (e) => {
+    if (!isDragging) return;
+    e.preventDefault();
+    const x = e.pageX - filterScrollRef.current.offsetLeft;
+    const walk = (x - startX) * 2; // Adjust scroll speed multiplier
+    filterScrollRef.current.scrollLeft = scrollLeft - walk;
+  };
+
   // FILTER & SEARCH LOGIC
   const filteredRestaurants = useMemo(() => {
     let data = [...shops];
@@ -117,16 +189,28 @@ const AllRestaurantCard = () => {
   }, [shops, search, activeFilter]);
 
   return (
-    <div className="min-h-screen bg-[#faf9f6] px-4 sm:px-6 lg:px-12 py-10 antialiased">
+    <div className="min-h-screen bg-[#faf9f6] px-4 sm:px-6 lg:px-12 py-8 antialiased">
       {/* HERO SECTION */}
       <div className="relative overflow-hidden rounded-[32px] bg-gradient-to-br from-slate-900 via-slate-800 to-black p-8 md:p-14 text-white mb-12 shadow-xl">
-        <div className="absolute top-0 right-0 w-80 h-80 bg-orange-500/15 blur-[120px] rounded-full pointer-events-none" />
+        <div className="flex items-center gap-3 sm:gap-4 relative z-20">
+          <button
+            onClick={() => navigate(-1)}
+            className="w-10 h-10 sm:w-11 sm:h-11 rounded-2xl bg-white/10 hover:bg-white/20 border border-white/10 backdrop-blur-md shadow-lg flex shrink-0 items-center justify-center text-white transition-all duration-300 hover:scale-105 active:scale-95 cursor-pointer"
+          >
+            <FiArrowLeft className="text-lg sm:text-xl" />
+          </button>
 
-        <div className="relative z-10 flex flex-col gap-6 max-w-4xl">
-          <span className="w-fit px-4 py-1.5 rounded-full bg-white/10 border border-white/10 text-[10px] tracking-[0.2em] uppercase font-bold text-orange-400">
+          {/* PREMIUM BADGE */}
+          <span className="px-4 py-1.5 sm:py-2 rounded-full bg-white/10 border border-white/10 text-[9px] sm:text-[10px] tracking-[0.2em] uppercase font-bold text-orange-400 backdrop-blur-md whitespace-nowrap shadow-sm">
             Premium Food Discovery
           </span>
+        </div>
 
+        {/* BACKGROUND GLOW */}
+        <div className="absolute top-0 right-0 w-80 h-80 bg-orange-500/15 blur-[120px] rounded-full pointer-events-none" />
+
+        {/* MAIN CONTENT WRAPPER*/}
+        <div className="relative z-10 flex flex-col gap-6 max-w-4xl mt-8 md:mt-10">
           <h1 className="text-4xl md:text-6xl font-black tracking-tight leading-[1.1]">
             Explore the best <br className="hidden sm:inline" />
             restaurants in{" "}
@@ -139,7 +223,7 @@ const AllRestaurantCard = () => {
           </p>
 
           {/* SEARCH BAR WITH VOICE TYPING */}
-          <div className="relative w-full max-w-xl mt-4 group flex items-center">
+          <div className="relative w-full max-w-xl mt-2 group flex items-center">
             <FaSearch className="absolute left-5 text-slate-400 transition-colors group-focus-within:text-orange-500 z-10" />
             <input
               type="text"
@@ -156,7 +240,9 @@ const AllRestaurantCard = () => {
                   : "text-slate-400 hover:text-orange-500 hover:bg-slate-50"
               }`}
             >
-              <FiMic className={`text-lg ${isListening ? "animate-pulse scale-110" : ""}`} />
+              <FiMic
+                className={`text-lg ${isListening ? "animate-pulse scale-110" : ""}`}
+              />
             </button>
           </div>
         </div>
@@ -164,12 +250,25 @@ const AllRestaurantCard = () => {
 
       {/* FILTER CONTROLS */}
       <div className="flex items-center justify-between gap-4 flex-wrap mb-8">
-        <div className="flex gap-2.5 overflow-x-auto pb-2 -mb-2 scrollbar-none snap-x mask-gradient">
+        <div
+          ref={filterScrollRef}
+          onMouseDown={handleMouseDown}
+          onMouseLeave={handleMouseLeave}
+          onMouseUp={handleMouseUp}
+          onMouseMove={handleMouseMove}
+          className={`flex gap-2.5 overflow-x-auto pb-2 -mb-2 scrollbar-none snap-x mask-gradient transition-all ${
+            isDragging ? "cursor-grabbing select-none" : "cursor-grab"
+          }`}
+        >
           {FILTER_OPTIONS.map((filter, index) => (
             <button
               key={index}
-              onClick={() => setActiveFilter(filter)}
-              className={`whitespace-nowrap px-5 py-3 rounded-xl text-xs font-bold uppercase tracking-wider transition-all duration-300 snap-center
+              onClick={() => {
+                if (!isDragging) setActiveFilter(filter);
+              }}
+              className={`whitespace-nowrap px-5 py-3 rounded-xl text-xs font-bold uppercase tracking-wider transition-all duration-300 snap-center ${
+                isDragging ? "pointer-events-none" : ""
+              }
               ${
                 activeFilter === filter
                   ? "bg-orange-500 text-white shadow-lg shadow-orange-500/20"
@@ -183,7 +282,9 @@ const AllRestaurantCard = () => {
 
         <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-slate-400">
           <FiGrid className="text-sm" />
-          <span>{filteredRestaurants.length} Restaurants Found</span>
+          <span>
+            {isLoading ? "..." : filteredRestaurants.length} Restaurants Found
+          </span>
         </div>
       </div>
 
@@ -206,23 +307,27 @@ const AllRestaurantCard = () => {
       </div>
 
       {/* RESTAURANT GRID */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 ">
         <AnimatePresence mode="popLayout">
-          {filteredRestaurants.map((shop, index) => (
-            <RestaurantCard
-              key={shop._id || index}
-              shop={shop}
-              index={index}
-              municipality={municipality}
-              isFavorite={!!favorites[shop._id || index]}
-              onToggleFavorite={() => toggleFavorite(shop._id || index)}
-            />
-          ))}
+          {isLoading
+            ? Array.from({ length: 8 }).map((_, idx) => (
+                <SkeletonCard key={`skeleton-${idx}`} />
+              ))
+            : filteredRestaurants.map((shop, index) => (
+                <RestaurantCard
+                  key={shop._id || index}
+                  shop={shop}
+                  index={index}
+                  municipality={municipality}
+                  isFavorite={!!favorites[shop._id || index]}
+                  onToggleFavorite={() => toggleFavorite(shop._id || index)}
+                />
+              ))}
         </AnimatePresence>
       </div>
 
       {/* EMPTY STATE */}
-      {filteredRestaurants.length === 0 && (
+      {!isLoading && filteredRestaurants.length === 0 && (
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
@@ -244,6 +349,38 @@ const AllRestaurantCard = () => {
   );
 };
 
+/* NEW: SKELETON LOADING CARD SUB-COMPONENT */
+const SkeletonCard = () => {
+  return (
+    <motion.div
+      initial={{ opacity: 0, scale: 0.95 }}
+      animate={{ opacity: 1, scale: 1 }}
+      exit={{ opacity: 0, scale: 0.95 }}
+      transition={{ duration: 0.3 }}
+      className="bg-white rounded-3xl overflow-hidden border border-slate-100 shadow-sm flex flex-col h-full animate-pulse"
+    >
+      <div className="h-52 bg-slate-200 shrink-0 w-full"></div>
+      <div className="p-4 flex flex-col flex-grow justify-between gap-3">
+        <div className="flex flex-col gap-2.5 border-b border-slate-100 pb-3">
+          <div className="flex gap-2">
+            <div className="h-5 w-16 bg-slate-200 rounded-lg"></div>
+            <div className="h-5 w-16 bg-slate-200 rounded-lg"></div>
+          </div>
+          <div className="h-4 w-full bg-slate-200 rounded mt-2"></div>
+          <div className="h-4 w-2/3 bg-slate-200 rounded"></div>
+        </div>
+        <div className="flex items-center justify-between pt-1">
+          <div className="flex flex-col gap-2">
+            <div className="h-3 w-16 bg-slate-200 rounded"></div>
+            <div className="h-3 w-12 bg-slate-200 rounded"></div>
+          </div>
+          <div className="h-9 w-24 bg-slate-200 rounded-xl"></div>
+        </div>
+      </div>
+    </motion.div>
+  );
+};
+
 /* EXTRACTED CARD SUB-COMPONENT */
 const RestaurantCard = ({
   shop,
@@ -253,6 +390,22 @@ const RestaurantCard = ({
   onToggleFavorite,
 }) => {
   const navigate = useNavigate();
+
+  // TIME & DISTANCE LOGIC
+  // 1. Parse the string (e.g. "0 m" -> 0, "2.5 km" -> 2.5)
+  const distanceNumber = parseFloat(shop.distance);
+  // 2. Check if it's effectively 0 distance
+  const isZeroDistance = shop.distance && distanceNumber === 0;
+
+  // 3. Setup Fallback numbers
+  const prepTime = shop.preparationTime || 15;
+  const baseDeliveryTime = shop.deliveryTime || 30;
+
+  // 4. Calculate Final Display Time
+  const displayTime = isZeroDistance
+    ? prepTime + baseDeliveryTime
+    : baseDeliveryTime;
+
   return (
     <motion.div
       layout
@@ -267,7 +420,10 @@ const RestaurantCard = ({
       className="group bg-white rounded-3xl overflow-hidden border border-slate-100 shadow-sm hover:shadow-xl transition-all duration-300 flex flex-col h-full"
     >
       {/* IMAGE MEDIA COVER */}
-      <div className="relative h-52 overflow-hidden bg-slate-100 shrink-0">
+      <div
+        className="relative h-52 overflow-hidden bg-slate-100 shrink-0 cursor-pointer"
+        onClick={() => navigate(`/menu/${shop._id}`)}
+      >
         <img
           src={
             shop.image ||
@@ -283,19 +439,26 @@ const RestaurantCard = ({
         <button
           onClick={(e) => {
             e.preventDefault();
+            e.stopPropagation();
             onToggleFavorite();
           }}
           className="absolute top-4 right-4 w-10 h-10 rounded-full bg-white/80 backdrop-blur-md flex items-center justify-center shadow-sm active:scale-90 transition-transform"
         >
           <FaHeart
-            className={`text-sm transition-colors ${isFavorite ? "text-red-500" : "text-slate-600"}`}
+            className={`text-sm transition-colors ${isFavorite ? "text-red-500" : "text-slate-500 hover:text-red-400"}`}
           />
         </button>
 
+        {/* RATING & REVIEWS */}
         <div className="absolute top-4 left-4 bg-white/90 backdrop-blur-md px-2.5 py-1.5 rounded-xl flex items-center gap-1.5 shadow-sm">
           <FaStar className="text-amber-500 text-xs" />
           <span className="font-bold text-xs text-slate-800">
             {shop.rating || "4.5"}
+          </span>
+          <span className="text-[10px] text-slate-500 font-medium border-l border-slate-300 pl-1.5">
+            {shop.totalReviews >= 1000
+              ? `${(shop.totalReviews / 1000).toFixed(1).replace(/\.0$/, "")}k`
+              : shop.totalReviews}
           </span>
         </div>
 
@@ -311,45 +474,51 @@ const RestaurantCard = ({
       </div>
 
       {/* METADATA WRAPPERS */}
-      <div className="p-5 flex flex-col gap-4 flex-1 justify-between">
-        <div className="space-y-3">
+      <div className="p-4 flex flex-col flex-grow justify-between gap-3">
+        {/* TOP: Categories & Description */}
+        <div className="flex flex-col gap-2.5 border-b border-slate-100 pb-3">
           <div className="flex flex-wrap gap-1.5">
-            {(shop.categories || ["Cafe", "Dinner"])
+            {(shop.categories || ["Chinese", "Biryani", "Burgers"])
               .slice(0, 3)
               .map((cat, i) => (
                 <span
                   key={i}
-                  className="px-2.5 py-1 rounded-lg bg-slate-50 text-slate-500 text-[11px] font-semibold tracking-wide border border-slate-100"
+                  className="px-2.5 py-0.5 rounded-lg bg-slate-50 text-slate-600 text-[11px] font-medium border border-slate-100"
                 >
                   {cat}
                 </span>
               ))}
           </div>
 
-          <p className="text-xs text-slate-400 leading-relaxed line-clamp-2">
+          <p className="text-xs text-slate-500 leading-relaxed line-clamp-2 font-medium">
             {shop.description ||
-              "Premium handcrafted meals showcasing exclusive local culinary expertise and swift handling."}
+              "Premium handcrafted meals with fast delivery and signature culinary experiences."}
           </p>
         </div>
 
-        {/* BOTTOM METRICS */}
-        <div className="flex items-center justify-between pt-4 border-t border-slate-100 mt-auto">
-          <div className="flex items-center gap-3 text-xs font-semibold text-slate-500">
-            <div className="flex items-center gap-1.5">
-              <FaClock className="text-orange-500/80" />
-              <span>{shop.deliveryTime || 30}m</span>
-            </div>
-            <div className="flex items-center gap-1.5">
-              <FaMotorcycle className="text-orange-500/80" />
-              <span>Free</span>
+        {/* BOTTOM: Metrics & Button */}
+        <div className="flex items-center justify-between pt-1">
+          <div className="flex flex-col gap-1.5">
+            {shop.distance && (
+              <div className="flex items-center gap-1.5 text-slate-500">
+                <FiMapPin className="text-orange-400 text-xs" />
+                <span className="text-[11px] font-medium">
+                  {shop.distance} away
+                </span>
+              </div>
+            )}
+            <div className="flex items-center gap-1.5 text-slate-600">
+              <MdOutlineDirectionsBike className="text-green-600 text-xs" />
+              <span className="text-xs font-semibold">{displayTime} mins</span>
             </div>
           </div>
 
           <button
-            className="px-4 py-2 rounded-xl bg-slate-900 hover:bg-orange-500 text-white text-xs font-bold tracking-wide transition-all duration-300 shadow-sm"
+            className="inline-flex items-center gap-1.5 bg-slate-900 hover:bg-orange-600 text-white rounded-xl px-4 py-2.5 text-xs font-semibold transition-colors duration-300 group/btn"
             onClick={() => navigate(`/menu/${shop._id}`)}
           >
             View Menu
+            <FiArrowRight className="transition-transform duration-300 group-hover/btn:translate-x-1" />
           </button>
         </div>
       </div>
