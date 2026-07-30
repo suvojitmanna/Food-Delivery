@@ -477,12 +477,16 @@ const OwnerOrderPage = ({ orders = [] }) => {
               shopOrder.status,
             );
             const isLocked = availableOptions.length <= 1;
+
             const orderAvailableBoys = availableBoysMap[order._id] || [];
+
+            // Define assignedBoy by matching the ID from the available boys map
+            const assignedBoy = shopOrder?.assignDeliveryBoy;
 
             //calculate distance for this specific order
             const shopLat = shopOrder?.shop?.location?.latitude;
             const shopLng = shopOrder?.shop?.location?.longitude;
-            
+
             const customerLat =
               address?.latitude ||
               address?.location?.coordinates?.[1] ||
@@ -506,7 +510,6 @@ const OwnerOrderPage = ({ orders = [] }) => {
                 estimatedMins = calculateTime(distanceKm);
               }
             }
-
             return (
               <div
                 key={order._id || `fallback-order-${index}`}
@@ -598,7 +601,7 @@ const OwnerOrderPage = ({ orders = [] }) => {
                       Delivery Partner
                     </h2>
 
-                    {shopOrder?.deliveryBoy ? (
+                    {assignedBoy ? (
                       <div className="text-xs sm:text-sm text-gray-500 space-y-2 ml-7 font-medium border-l-2 border-indigo-100 pl-3">
                         <p className="flex items-center gap-2">
                           <FiUser
@@ -606,7 +609,9 @@ const OwnerOrderPage = ({ orders = [] }) => {
                             size={16}
                           />
                           <span className="text-gray-800 font-bold">
-                            {shopOrder.deliveryBoy?.name || "Assigned Partner"}
+                            {assignedBoy.name ||
+                              assignedBoy.fullName ||
+                              "Assigned Partner"}
                           </span>
                         </p>
                         <p className="flex items-center gap-2">
@@ -615,18 +620,19 @@ const OwnerOrderPage = ({ orders = [] }) => {
                             size={16}
                           />
                           +91{" "}
-                          {shopOrder.deliveryBoy?.mobileNumber ||
-                            shopOrder.deliveryBoy?.phone ||
+                          {assignedBoy.mobileNumber ||
+                            assignedBoy.mobile ||
+                            assignedBoy.phone ||
                             "N/A"}
                         </p>
-                        {shopOrder.deliveryBoy?.vehicleNumber && (
+                        {assignedBoy.vehicleNumber && (
                           <p className="flex items-center gap-2">
                             <FiTruck
                               className="text-gray-400 shrink-0"
                               size={16}
                             />
                             <span className="uppercase text-gray-600 bg-gray-100 px-2 py-0.5 rounded text-[10px] font-bold">
-                              {shopOrder.deliveryBoy.vehicleNumber}
+                              {assignedBoy.vehicleNumber}
                             </span>
                           </p>
                         )}
@@ -752,6 +758,8 @@ const OwnerOrderPage = ({ orders = [] }) => {
                     </p>
                     {orderAvailableBoys.length > 0 ? (
                       orderAvailableBoys.map((b, index) => {
+                        const isAssigned =
+                          b._id === shopOrder?.assignDeliveryBoy?._id;
                         const boyLat = b?.location?.coordinates?.[1];
                         const boyLng = b?.location?.coordinates?.[0];
 
@@ -765,26 +773,43 @@ const OwnerOrderPage = ({ orders = [] }) => {
                         return (
                           <div
                             key={b._id || index}
-                            className="flex items-center justify-between py-2 border-b border-orange-200/60 last:border-0"
+                            className={`flex items-center justify-between py-2 border-b last:border-0 ${
+                              isAssigned
+                                ? "border-green-200/60 bg-green-50/50 -mx-2 px-2 rounded-lg"
+                                : "border-orange-200/60"
+                            }`}
                           >
                             <div>
-                              <p className="text-orange-800 font-bold capitalize">
-                                {index + 1}. {b.fullName}
+                              <p
+                                className={`${isAssigned ? "text-green-800" : "text-orange-800"} font-bold capitalize flex items-center gap-2`}
+                              >
+                                {index + 1}. {b.fullName || b.name}
+                                {isAssigned && (
+                                  <span className="bg-green-600 text-white text-[9px] px-2 py-0.5 rounded-full tracking-wide">
+                                    ASSIGNED
+                                  </span>
+                                )}
                               </p>
-                              <p className="text-orange-600/80 font-medium ml-4 text-xs">
+                              <p
+                                className={`${isAssigned ? "text-green-600/80" : "text-orange-600/80"} font-medium ml-4 text-xs`}
+                              >
                                 {b.mobile}
                               </p>
                             </div>
 
                             {boyDistance != null && !isNaN(boyDistance) && (
-                              <div className="bg-orange-100 text-orange-800 text-xs px-2.5 py-1 rounded-md font-bold flex items-center gap-1.5 shadow-sm justify-center whitespace-nowrap">
-                                <p className="text-indigo-500">
+                              <div
+                                className={`${isAssigned ? "bg-green-100 text-green-800" : "bg-orange-100 text-orange-800"} text-xs px-2.5 py-1 rounded-md font-bold flex items-center gap-1.5 shadow-sm justify-center whitespace-nowrap`}
+                              >
+                                <p
+                                  className={`${isAssigned ? "text-green-600" : "text-indigo-500"}`}
+                                >
                                   Distance{" "}
                                   <span className="text-sm font-bold">:</span>
                                 </p>
                                 <FiNavigation
                                   size={12}
-                                  className="text-orange-600"
+                                  className={`${isAssigned ? "text-green-600" : "text-orange-600"}`}
                                 />
                                 {boyDistance.toFixed(1)} km
                               </div>
