@@ -95,7 +95,8 @@ const App = () => {
     location.pathname.startsWith("/cart") ||
     location.pathname.startsWith("/multi-cart") ||
     location.pathname.startsWith("/menu") ||
-    location.pathname.startsWith("/DeliveryAddressPage");
+    location.pathname.startsWith("/DeliveryAddressPage")||
+    location.pathname.startsWith("/order-placed");
 
   if (loading) {
     return (
@@ -189,7 +190,7 @@ const App = () => {
           path="/DeliveryAddressPage/:id"
           element={<DeliveryAddressPage />}
         />
-        <Route path="/order" element={<OrderPlaced />} />
+        <Route path="/order-placed" element={<OrderPlaced />} />
         <Route path="/my-order" element={<MyOrder />} />
       </Routes>
 

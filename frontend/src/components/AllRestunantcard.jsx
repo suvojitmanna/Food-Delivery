@@ -1,7 +1,7 @@
-import React, { useMemo, useState, useEffect, useRef } from "react";
+import { useMemo, useState, useEffect, useRef } from "react";
 import { useSelector } from "react-redux";
 import { motion, AnimatePresence } from "framer-motion";
-import { FaStar, FaClock, FaHeart, FaSearch } from "react-icons/fa";
+import { FaStar, FaHeart, FaSearch } from "react-icons/fa";
 import {
   FiFilter,
   FiGrid,
@@ -51,10 +51,8 @@ const AllRestaurantCard = () => {
   const [activeFilter, setActiveFilter] = useState("All");
   const [isListening, setIsListening] = useState(false);
 
-  // NEW: Loading State
   const [isLoading, setIsLoading] = useState(true);
 
-  // NEW: Mouse Drag Scrolling States
   const filterScrollRef = useRef(null);
   const [isDragging, setIsDragging] = useState(false);
   const [startX, setStartX] = useState(0);
@@ -78,13 +76,11 @@ const AllRestaurantCard = () => {
     if (shops.length > 0) {
       setIsLoading(false);
     } else {
-      // Fallback timeout to stop showing skeleton if no data exists
       const timer = setTimeout(() => setIsLoading(false), 2000);
       return () => clearTimeout(timer);
     }
   }, [shops]);
 
-  // Save favorites to Local Storage whenever it changes
   useEffect(() => {
     try {
       localStorage.setItem("userFavorites", JSON.stringify(favorites));
@@ -139,7 +135,6 @@ const AllRestaurantCard = () => {
     }
   };
 
-  // NEW: Mouse Drag Scrolling Handlers
   const handleMouseDown = (e) => {
     setIsDragging(true);
     setStartX(e.pageX - filterScrollRef.current.offsetLeft);
@@ -153,7 +148,7 @@ const AllRestaurantCard = () => {
     if (!isDragging) return;
     e.preventDefault();
     const x = e.pageX - filterScrollRef.current.offsetLeft;
-    const walk = (x - startX) * 2; // Adjust scroll speed multiplier
+    const walk = (x - startX) * 2;
     filterScrollRef.current.scrollLeft = scrollLeft - walk;
   };
 
@@ -349,7 +344,6 @@ const AllRestaurantCard = () => {
   );
 };
 
-/* NEW: SKELETON LOADING CARD SUB-COMPONENT */
 const SkeletonCard = () => {
   return (
     <motion.div
@@ -391,17 +385,11 @@ const RestaurantCard = ({
 }) => {
   const navigate = useNavigate();
 
-  // TIME & DISTANCE LOGIC
-  // 1. Parse the string (e.g. "0 m" -> 0, "2.5 km" -> 2.5)
   const distanceNumber = parseFloat(shop.distance);
-  // 2. Check if it's effectively 0 distance
   const isZeroDistance = shop.distance && distanceNumber === 0;
-
-  // 3. Setup Fallback numbers
   const prepTime = shop.preparationTime || 15;
   const baseDeliveryTime = shop.deliveryTime || 30;
 
-  // 4. Calculate Final Display Time
   const displayTime = isZeroDistance
     ? prepTime + baseDeliveryTime
     : baseDeliveryTime;
@@ -496,7 +484,6 @@ const RestaurantCard = ({
           </p>
         </div>
 
-        {/* BOTTOM: Metrics & Button */}
         <div className="flex items-center justify-between pt-1">
           <div className="flex flex-col gap-1.5">
             {shop.distance && (

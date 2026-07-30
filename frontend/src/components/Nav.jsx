@@ -2,7 +2,6 @@ import axios from "axios";
 import { useEffect, useRef, useState } from "react";
 import { FaLocationDot, FaXmark, FaGear } from "react-icons/fa6";
 import { IoIosSearch } from "react-icons/io";
-import { TiShoppingCart } from "react-icons/ti";
 import { MdLogout, MdOutlineDeliveryDining } from "react-icons/md";
 import { motion, AnimatePresence } from "framer-motion";
 import { useDispatch, useSelector } from "react-redux";
@@ -25,13 +24,32 @@ const Nav = () => {
 
   const dropdownRef = useRef();
   const recognitionRef = useRef(null);
+
+  const desktopSearchRef = useRef(null);
+  const mobileSearchRef = useRef(null);
+
+  // Added refs for mobile search container and toggle button
+  const searchPanelRef = useRef(null);
+  const searchToggleRef = useRef(null);
+
   const navigate = useNavigate();
 
-  // Close dropdown on outside click
+  // Close dropdown and mobile search on outside click
   useEffect(() => {
     const handleClick = (e) => {
+      // Close user profile dropdown
       if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
         setShowInfo(false);
+      }
+
+      // Close mobile search panel if clicked outside both the panel and the toggle button
+      if (
+        searchPanelRef.current &&
+        !searchPanelRef.current.contains(e.target) &&
+        searchToggleRef.current &&
+        !searchToggleRef.current.contains(e.target)
+      ) {
+        setShowSearch(false);
       }
     };
 
@@ -105,7 +123,7 @@ const Nav = () => {
   };
 
   const locationString =
-    [city.county,city?.suburb, city?.street, city?.state_district, city?.state]
+    [city.county, city?.suburb, city?.street, city?.state_district, city?.state]
       .filter(Boolean)
       .join(", ") || "Set Location";
 
@@ -167,6 +185,7 @@ const Nav = () => {
                 <div className="flex items-center gap-2 flex-1 pl-3 pr-1">
                   <IoIosSearch className="text-gray-400 text-xl shrink-0" />
                   <input
+                    ref={desktopSearchRef}
                     type="text"
                     value={search}
                     onChange={(e) => setSearch(e.target.value)}
@@ -199,6 +218,7 @@ const Nav = () => {
             {/* MOBILE SEARCH TOGGLE */}
             {userData?.role === "user" && (
               <motion.button
+                ref={searchToggleRef} // Attached Toggle Ref
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
                 onClick={() => setShowSearch(!showSearch)}
@@ -333,10 +353,7 @@ const Nav = () => {
                       <motion.button
                         whileHover="hover"
                         style={{ backgroundColor: "transparent" }}
-                        whileHover={{
-                          backgroundColor: "rgba(249, 250, 251, 1)",
-                        }}
-                        className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl transition-all text-sm font-medium text-gray-700 cursor-pointer"
+                        className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl transition-all text-sm font-medium text-gray-700 cursor-pointer hover:bg-gray-50"
                       >
                         <motion.div
                           variants={{
@@ -353,14 +370,12 @@ const Nav = () => {
                         </motion.div>
                         <span>Account Settings</span>
                       </motion.button>
+
                       {userData?.role === "user" ? (
                         <motion.button
                           whileHover="hover"
                           style={{ backgroundColor: "transparent" }}
-                          whileHover={{
-                            backgroundColor: "rgba(249, 250, 251, 1)",
-                          }}
-                          className="w-full flex sm:hidden items-center gap-3 px-4 py-3 rounded-2xl transition-all text-sm font-medium text-gray-700 cursor-pointer"
+                          className="w-full flex sm:hidden items-center gap-3 px-4 py-3 rounded-2xl transition-all text-sm font-medium text-gray-700 cursor-pointer hover:bg-gray-50"
                           onClick={() => navigate("/my-order")}
                         >
                           <motion.div
@@ -380,10 +395,7 @@ const Nav = () => {
                         <motion.button
                           whileHover="hover"
                           style={{ backgroundColor: "transparent" }}
-                          whileHover={{
-                            backgroundColor: "rgba(249, 250, 251, 1)",
-                          }}
-                          className="md:hidden w-full flex items-center gap-3 px-4 py-3 rounded-2xl transition-all text-sm font-medium text-gray-700 cursor-pointer"
+                          className="md:hidden w-full flex items-center gap-3 px-4 py-3 rounded-2xl transition-all text-sm font-medium text-gray-700 cursor-pointer hover:bg-gray-50"
                           onClick={() => navigate("/my-order")}
                         >
                           <motion.div
@@ -436,6 +448,7 @@ const Nav = () => {
       <AnimatePresence>
         {showSearch && userData?.role === "user" && (
           <motion.div
+            ref={searchPanelRef} // Attached Panel Ref
             initial={{ opacity: 0, y: -30 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -30 }}
@@ -455,6 +468,7 @@ const Nav = () => {
               <div className="flex items-center h-12 rounded-2xl bg-gray-50 border border-gray-200 px-3 focus-within:border-[#ff4d2d] focus-within:bg-white transition-all duration-300">
                 <IoIosSearch className="text-gray-400 text-xl shrink-0 ml-1" />
                 <input
+                  ref={mobileSearchRef}
                   autoFocus
                   type="text"
                   value={search}
