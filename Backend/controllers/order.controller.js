@@ -324,3 +324,41 @@ export const getAssignment = async (req, res) => {
         });
     }
 };
+
+export const getDeliveryAssignment = async (req, res) => {
+    try {
+        const deliveryBoyId = req.userId;
+        const assignments = await DeliverAssignment.find({
+            broadcastedTo: deliveryBoyId,
+            status: "broadcasted",
+        })
+            .populate("order")
+            .populate("shop");
+
+        const formatted = assignments.map((a) => {
+            const shopOrder = a.order.shopOrders.find(
+                (so) => so._id.toString() === a.shopOrderId.toString()
+            );
+
+            return {
+                assignmentId: a._id,
+                orderId: a.order._id,
+                shopName: a.shop.name,
+                shopLocation: a.shop.location,
+                deliveryAddress: a.order.deliveryAddress,
+                items: shopOrder?.items || [],
+                subtotal: shopOrder?.subtotal || 0,
+            };
+        });
+
+        return res.status(200).json({
+            success: true,
+            assignments: formatted,
+        });
+    } catch (error) {
+        return res.status(500).json({
+            success: false,
+            message: `Get assignment error: ${error.message}`,
+        });
+    }
+};

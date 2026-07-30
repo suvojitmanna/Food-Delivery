@@ -1,5 +1,5 @@
 import axios from "axios";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useMemo, useCallback } from "react";
 import { FaLocationDot, FaXmark, FaGear } from "react-icons/fa6";
 import { IoIosSearch } from "react-icons/io";
 import { MdLogout, MdOutlineDeliveryDining } from "react-icons/md";
@@ -16,33 +16,27 @@ const Nav = () => {
   const { userData, city, myOrders } = useSelector((state) => state.user);
   const { myShopData } = useSelector((state) => state.owner);
   const dispatch = useDispatch();
+  const navigate = useNavigate();
 
   const [showInfo, setShowInfo] = useState(false);
   const [showSearch, setShowSearch] = useState(false);
   const [search, setSearch] = useState("");
   const [isListening, setIsListening] = useState(false);
+  const [hasVoiceSupport, setHasVoiceSupport] = useState(false);
 
   const dropdownRef = useRef();
   const recognitionRef = useRef(null);
-
   const desktopSearchRef = useRef(null);
   const mobileSearchRef = useRef(null);
-
-  // Added refs for mobile search container and toggle button
   const searchPanelRef = useRef(null);
   const searchToggleRef = useRef(null);
-
-  const navigate = useNavigate();
 
   // Close dropdown and mobile search on outside click
   useEffect(() => {
     const handleClick = (e) => {
-      // Close user profile dropdown
       if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
         setShowInfo(false);
       }
-
-      // Close mobile search panel if clicked outside both the panel and the toggle button
       if (
         searchPanelRef.current &&
         !searchPanelRef.current.contains(e.target) &&
@@ -54,16 +48,23 @@ const Nav = () => {
     };
 
     document.addEventListener("mousedown", handleClick);
-    return () => {
-      document.removeEventListener("mousedown", handleClick);
-    };
+    return () => document.removeEventListener("mousedown", handleClick);
   }, []);
+
+  // Auto-focus mobile search when toggled
+  useEffect(() => {
+    if (showSearch && mobileSearchRef.current) {
+      mobileSearchRef.current.focus();
+    }
+  }, [showSearch]);
 
   // Initialize Speech Recognition
   useEffect(() => {
     const SpeechRecognition =
       window.SpeechRecognition || window.webkitSpeechRecognition;
+
     if (SpeechRecognition) {
+      setHasVoiceSupport(true);
       const recognition = new SpeechRecognition();
       recognition.continuous = false;
       recognition.interimResults = false;
@@ -88,10 +89,7 @@ const Nav = () => {
   }, []);
 
   const toggleListening = () => {
-    if (!recognitionRef.current) {
-      alert("Voice search is not supported in this browser.");
-      return;
-    }
+    if (!recognitionRef.current) return;
 
     if (isListening) {
       recognitionRef.current.stop();
@@ -101,18 +99,25 @@ const Nav = () => {
     }
   };
 
+  const handleKeyDown = (e) => {
+    if (e.key === "Enter" && search.trim()) {
+      setShowSearch(false);
+    }
+  };
+
   const handleLogout = async () => {
     try {
       await axios.get(`${serverUrl}/api/auth/signout`, {
         withCredentials: true,
       });
       dispatch(setUserData(null));
+      navigate("/login");
     } catch (error) {
-      console.log(error);
+      console.error("Logout failed:", error);
     }
   };
 
-  const getInitials = (name) => {
+  const getInitials = useCallback((name) => {
     if (!name) return "GU";
     return name
       .split(" ")
@@ -120,43 +125,62 @@ const Nav = () => {
       .join("")
       .slice(0, 2)
       .toUpperCase();
-  };
+  }, []);
 
-  const locationString =
-    [city.county, city?.suburb, city?.street, city?.state_district, city?.state]
-      .filter(Boolean)
-      .join(", ") || "Set Location";
+  const locationString = useMemo(() => {
+    return (
+      [
+        city?.county,
+        city?.suburb,
+        city?.street,
+        city?.state_district,
+        city?.state,
+      ]
+        .filter(Boolean)
+        .join(", ") || "Set Location"
+    );
+  }, [city]);
 
-  // User Active Orders
-  const activeOrders =
-    myOrders?.filter((order) =>
-      order.shopOrders?.some(
-        (shopOrder) => shopOrder.status?.toLowerCase() !== "delivered",
-      ),
-    ) || [];
-
-  // Owner Pending Orders
-  const ownerPendingOrders =
-    myOrders?.filter(
-      (order) =>
-        order.status?.toLowerCase() === "pending" ||
+  const activeOrders = useMemo(() => {
+    return (
+      myOrders?.filter((order) =>
         order.shopOrders?.some(
-          (shopOrder) => shopOrder.status?.toLowerCase() === "pending",
+          (shopOrder) => shopOrder.status?.toLowerCase() !== "delivered",
         ),
-    ) || [];
+      ) || []
+    );
+  }, [myOrders]);
+
+  const ownerPendingOrders = useMemo(() => {
+    return (
+      myOrders?.filter(
+        (order) =>
+          order.status?.toLowerCase() === "pending" ||
+          order.shopOrders?.some(
+            (shopOrder) => shopOrder.status?.toLowerCase() === "pending",
+          ),
+      ) || []
+    );
+  }, [myOrders]);
+
+  const activeDeliveries = useMemo(() => {
+    return (
+      myOrders?.filter(
+        (order) => order.status?.toLowerCase() !== "delivered",
+      ) || []
+    );
+  }, [myOrders]);
 
   return (
     <>
-      {/* NAVBAR */}
       <nav className="fixed top-0 left-0 w-full z-50 border-b border-white/20 bg-white/70 backdrop-blur-2xl shadow-[0_8px_30px_rgb(0,0,0,0.04)]">
         <div className="max-w-7xl mx-auto px-4 md:px-8 h-20 flex items-center justify-between">
-          {/* LEFT */}
           <div className="flex items-center gap-8">
-            {/* LOGO */}
             <motion.div
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
               className="flex items-center gap-2 cursor-pointer select-none"
+              onClick={() => navigate("/")}
             >
               <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-[#ff4d2d] to-orange-400 flex items-center justify-center shadow-lg shadow-orange-200">
                 <MdOutlineDeliveryDining className="text-white text-2xl" />
@@ -167,10 +191,8 @@ const Nav = () => {
               </h1>
             </motion.div>
 
-            {/* DESKTOP SEARCH */}
             {userData?.role === "user" && (
               <div className="hidden lg:flex items-center w-[450px] h-12 rounded-2xl bg-white border border-gray-200 px-4 shadow-sm hover:shadow-md transition-all duration-300 focus-within:border-[#ff4d2d]">
-                {/* LOCATION */}
                 <div className="flex items-center gap-2 border-r border-gray-200 pr-3 max-w-[38%]">
                   <FaLocationDot className="text-[#ff4d2d] shrink-0" />
                   <span
@@ -181,7 +203,6 @@ const Nav = () => {
                   </span>
                 </div>
 
-                {/* INPUT & VOICE */}
                 <div className="flex items-center gap-2 flex-1 pl-3 pr-1">
                   <IoIosSearch className="text-gray-400 text-xl shrink-0" />
                   <input
@@ -189,36 +210,36 @@ const Nav = () => {
                     type="text"
                     value={search}
                     onChange={(e) => setSearch(e.target.value)}
+                    onKeyDown={handleKeyDown}
                     placeholder="Search restaurants, food..."
                     className="w-full bg-transparent outline-none text-sm text-gray-700 placeholder:text-gray-400"
                   />
-
-                  {/* Desktop Mic Button */}
-                  <button
-                    onClick={toggleListening}
-                    className={`p-1.5 rounded-full transition-all duration-300 ${
-                      isListening
-                        ? "bg-[#ff4d2d]/10 text-[#ff4d2d]"
-                        : "text-gray-400 hover:text-[#ff4d2d] hover:bg-gray-50"
-                    }`}
-                  >
-                    <FiMic
-                      className={`text-lg ${
-                        isListening ? "animate-pulse scale-110" : ""
+                  {hasVoiceSupport && (
+                    <button
+                      onClick={toggleListening}
+                      aria-label={
+                        isListening ? "Stop listening" : "Start voice search"
+                      }
+                      className={`p-1.5 rounded-full transition-all duration-300 ${
+                        isListening
+                          ? "bg-[#ff4d2d]/10 text-[#ff4d2d]"
+                          : "text-gray-400 hover:text-[#ff4d2d] hover:bg-gray-50"
                       }`}
-                    />
-                  </button>
+                    >
+                      <FiMic
+                        className={`text-lg ${isListening ? "animate-pulse scale-110" : ""}`}
+                      />
+                    </button>
+                  )}
                 </div>
               </div>
             )}
           </div>
 
-          {/* RIGHT */}
           <div className="flex items-center gap-3 md:gap-5">
-            {/* MOBILE SEARCH TOGGLE */}
             {userData?.role === "user" && (
               <motion.button
-                ref={searchToggleRef} // Attached Toggle Ref
+                ref={searchToggleRef}
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
                 onClick={() => setShowSearch(!showSearch)}
@@ -232,7 +253,6 @@ const Nav = () => {
               </motion.button>
             )}
 
-            {/* ORDERS & ACTIONS (OWNER ONLY IN NAVBAR) */}
             {userData?.role === "owner" && (
               <>
                 {myShopData && (
@@ -247,7 +267,6 @@ const Nav = () => {
                   </motion.button>
                 )}
 
-                {/* Visible only to Owners on desktop viewports */}
                 <motion.button
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
@@ -256,32 +275,49 @@ const Nav = () => {
                 >
                   <TbReceipt2 size={20} className="shrink-0" />
                   <span>My Orders</span>
-                  <span className="absolute -top-1 -right-1 bg-[#ff4d2d] text-white text-[10px] font-bold w-5 h-5 rounded-full flex items-center justify-center shadow-lg">
-                    {ownerPendingOrders.length}
-                  </span>
+                  {ownerPendingOrders.length > 0 && (
+                    <span className="absolute -top-1 -right-1 bg-[#ff4d2d] text-white text-[10px] font-bold w-5 h-5 rounded-full flex items-center justify-center shadow-lg">
+                      {ownerPendingOrders.length}
+                    </span>
+                  )}
                 </motion.button>
               </>
             )}
 
-            {/* CART */}
             {userData?.role === "user" && (
-              <>
-                <motion.button
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  className="relative hidden lg:flex items-center gap-2 h-11 px-5 rounded-3xl border border-gray-200 bg-[#ff4d2d]/10 hover:border-[#ff4d2d] text-[#ff4d2d] transition-all duration-300 font-semibold text-sm cursor-pointer"
-                  onClick={() => navigate("/my-order")}
-                >
-                  <TbReceipt2 size={20} className="shrink-0" />
-                  <span>My Orders</span>
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                className="relative hidden lg:flex items-center gap-2 h-11 px-5 rounded-3xl border border-gray-200 bg-[#ff4d2d]/10 hover:border-[#ff4d2d] text-[#ff4d2d] transition-all duration-300 font-semibold text-sm cursor-pointer"
+                onClick={() => navigate("/my-order")}
+              >
+                <TbReceipt2 size={20} className="shrink-0" />
+                <span>My Orders</span>
+                {activeOrders.length > 0 && (
                   <span className="absolute -top-1 -right-1 bg-[#ff4d2d] text-white text-[10px] font-bold w-5 h-5 rounded-full flex items-center justify-center shadow-lg">
                     {activeOrders.length}
                   </span>
-                </motion.button>
-              </>
+                )}
+              </motion.button>
             )}
 
-            {/* USER PROFILE DROPDOWN TRIGGER */}
+            {userData?.role === "deliveryBoy" && (
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                className="relative hidden lg:flex items-center gap-2 h-11 px-5 rounded-3xl border border-gray-200 bg-[#ff4d2d]/10 hover:border-[#ff4d2d] text-[#ff4d2d] transition-all duration-300 font-semibold text-sm cursor-pointer"
+                onClick={() => navigate("/")}
+              >
+                <MdOutlineDeliveryDining size={22} className="shrink-0" />
+                <span>Deliveries</span>
+                {activeDeliveries.length > 0 && (
+                  <span className="absolute -top-1 -right-1 bg-[#ff4d2d] text-white text-[10px] font-bold w-5 h-5 rounded-full flex items-center justify-center shadow-lg">
+                    {activeDeliveries.length}
+                  </span>
+                )}
+              </motion.button>
+            )}
+
             <div className="relative" ref={dropdownRef}>
               <motion.button
                 whileHover={{ scale: 1.03 }}
@@ -303,7 +339,6 @@ const Nav = () => {
                 )}
               </motion.button>
 
-              {/* PROFILE MENU PANEL */}
               <AnimatePresence>
                 {showInfo && (
                   <motion.div
@@ -314,7 +349,6 @@ const Nav = () => {
                     className="absolute right-0 top-16 w-64 bg-white border border-gray-100 rounded-3xl shadow-2xl overflow-hidden z-50"
                   >
                     <div>
-                      {/* TOP HEADER */}
                       <div className="px-5 py-5 bg-gradient-to-r from-orange-50 to-red-50 border-b border-gray-100 flex justify-between items-center gap-3">
                         <div className="truncate flex-1">
                           <p className="text-xs text-gray-500 font-medium">
@@ -333,7 +367,6 @@ const Nav = () => {
                           )}
                         </div>
 
-                        {/* PROFILE IMAGE PANEL */}
                         <div className="w-12 h-12 rounded-full overflow-hidden border border-gray-200 bg-gray-100 flex items-center justify-center shrink-0 shadow-sm">
                           {userData?.profilePic ? (
                             <img
@@ -356,9 +389,7 @@ const Nav = () => {
                         className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl transition-all text-sm font-medium text-gray-700 cursor-pointer hover:bg-gray-50"
                       >
                         <motion.div
-                          variants={{
-                            hover: { rotate: 45 },
-                          }}
+                          variants={{ hover: { rotate: 45 } }}
                           transition={{
                             type: "spring",
                             stiffness: 200,
@@ -371,31 +402,11 @@ const Nav = () => {
                         <span>Account Settings</span>
                       </motion.button>
 
-                      {userData?.role === "user" ? (
+                      {userData?.role === "user" && (
                         <motion.button
                           whileHover="hover"
                           style={{ backgroundColor: "transparent" }}
-                          className="w-full flex sm:hidden items-center gap-3 px-4 py-3 rounded-2xl transition-all text-sm font-medium text-gray-700 cursor-pointer hover:bg-gray-50"
-                          onClick={() => navigate("/my-order")}
-                        >
-                          <motion.div
-                            variants={{ hover: { y: -2 } }}
-                            transition={{
-                              type: "spring",
-                              stiffness: 300,
-                              damping: 15,
-                            }}
-                            className="flex items-center justify-center text-lg"
-                          >
-                            <TbReceipt2 />
-                          </motion.div>
-                          <span>My Orders</span>
-                        </motion.button>
-                      ) : (
-                        <motion.button
-                          whileHover="hover"
-                          style={{ backgroundColor: "transparent" }}
-                          className="md:hidden w-full flex items-center gap-3 px-4 py-3 rounded-2xl transition-all text-sm font-medium text-gray-700 cursor-pointer hover:bg-gray-50"
+                          className="w-full flex lg:hidden items-center gap-3 px-4 py-3 rounded-2xl transition-all text-sm font-medium text-gray-700 cursor-pointer hover:bg-gray-50"
                           onClick={() => navigate("/my-order")}
                         >
                           <motion.div
@@ -413,25 +424,65 @@ const Nav = () => {
                         </motion.button>
                       )}
 
+                      {userData?.role === "owner" && (
+                        <motion.button
+                          whileHover="hover"
+                          style={{ backgroundColor: "transparent" }}
+                          className="lg:hidden w-full flex items-center gap-3 px-4 py-3 rounded-2xl transition-all text-sm font-medium text-gray-700 cursor-pointer hover:bg-gray-50"
+                          onClick={() => navigate("/my-order")}
+                        >
+                          <motion.div
+                            variants={{ hover: { y: -2 } }}
+                            transition={{
+                              type: "spring",
+                              stiffness: 300,
+                              damping: 15,
+                            }}
+                            className="flex items-center justify-center text-lg"
+                          >
+                            <TbReceipt2 />
+                          </motion.div>
+                          <span>My Orders</span>
+                        </motion.button>
+                      )}
+
+                      {userData?.role === "deliveryBoy" && (
+                        <motion.button
+                          whileHover="hover"
+                          style={{ backgroundColor: "transparent" }}
+                          className="lg:hidden w-full flex items-center gap-3 px-4 py-3 rounded-2xl transition-all text-sm font-medium text-gray-700 cursor-pointer hover:bg-gray-50"
+                          onClick={() => navigate("/")}
+                        >
+                          <motion.div
+                            variants={{ hover: { y: -2 } }}
+                            transition={{
+                              type: "spring",
+                              stiffness: 300,
+                              damping: 15,
+                            }}
+                            className="flex items-center justify-center text-lg"
+                          >
+                            <MdOutlineDeliveryDining />
+                          </motion.div>
+                          <span>Deliveries</span>
+                        </motion.button>
+                      )}
+
                       <motion.button
                         whileHover="hover"
                         onClick={handleLogout}
                         className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl hover:bg-red-50 transition-all text-sm font-semibold text-red-500 cursor-pointer"
                       >
                         <motion.div
-                          variants={{
-                            hover: { x: 4 },
-                          }}
+                          variants={{ hover: { x: 4 } }}
                           transition={{
                             type: "spring",
                             stiffness: 300,
                             damping: 20,
                           }}
-                          className="flex items-center justify-center"
+                          className="flex items-center justify-center text-lg"
                         >
-                          <motion.div className="text-lg">
-                            <MdLogout />
-                          </motion.div>
+                          <MdLogout />
                         </motion.div>
                         Logout
                       </motion.button>
@@ -444,11 +495,10 @@ const Nav = () => {
         </div>
       </nav>
 
-      {/* MOBILE SEARCH PANEL */}
       <AnimatePresence>
         {showSearch && userData?.role === "user" && (
           <motion.div
-            ref={searchPanelRef} // Attached Panel Ref
+            ref={searchPanelRef}
             initial={{ opacity: 0, y: -30 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -30 }}
@@ -456,7 +506,6 @@ const Nav = () => {
             className="lg:hidden fixed top-20 left-0 w-full z-40 px-4"
           >
             <div className="bg-white rounded-3xl shadow-2xl border border-gray-100 p-4 space-y-3">
-              {/* Location */}
               <div className="flex items-center gap-2">
                 <FaLocationDot className="text-[#ff4d2d] text-sm shrink-0" />
                 <span className="truncate text-xs font-semibold text-gray-500 uppercase tracking-wider">
@@ -464,34 +513,35 @@ const Nav = () => {
                 </span>
               </div>
 
-              {/* Search Box & Mobile Voice */}
               <div className="flex items-center h-12 rounded-2xl bg-gray-50 border border-gray-200 px-3 focus-within:border-[#ff4d2d] focus-within:bg-white transition-all duration-300">
                 <IoIosSearch className="text-gray-400 text-xl shrink-0 ml-1" />
                 <input
                   ref={mobileSearchRef}
-                  autoFocus
                   type="text"
                   value={search}
+                  onKeyDown={handleKeyDown}
                   onChange={(e) => setSearch(e.target.value)}
                   placeholder="Search your favourite food..."
                   className="w-full h-full px-3 bg-transparent outline-none text-sm text-gray-700 placeholder:text-gray-400"
                 />
 
-                {/* Mobile Mic Button */}
-                <button
-                  onClick={toggleListening}
-                  className={`p-1.5 rounded-full transition-all duration-300 shrink-0 ${
-                    isListening
-                      ? "bg-[#ff4d2d]/10 text-[#ff4d2d]"
-                      : "text-gray-400 hover:text-[#ff4d2d] hover:bg-gray-100"
-                  }`}
-                >
-                  <FiMic
-                    className={`text-lg ${
-                      isListening ? "animate-pulse scale-110" : ""
+                {hasVoiceSupport && (
+                  <button
+                    onClick={toggleListening}
+                    aria-label={
+                      isListening ? "Stop listening" : "Start voice search"
+                    }
+                    className={`p-1.5 rounded-full transition-all duration-300 shrink-0 ${
+                      isListening
+                        ? "bg-[#ff4d2d]/10 text-[#ff4d2d]"
+                        : "text-gray-400 hover:text-[#ff4d2d] hover:bg-gray-100"
                     }`}
-                  />
-                </button>
+                  >
+                    <FiMic
+                      className={`text-lg ${isListening ? "animate-pulse scale-110" : ""}`}
+                    />
+                  </button>
+                )}
               </div>
             </div>
           </motion.div>
