@@ -332,22 +332,40 @@ export const getDeliveryAssignment = async (req, res) => {
             broadcastedTo: deliveryBoyId,
             status: "broadcasted",
         })
-            .populate("order")
+            .populate({
+                path: "order",
+                populate: {
+                    path: "deliveryAddress",
+                },
+            })
             .populate("shop");
 
         const formatted = assignments.map((a) => {
-            const shopOrder = a.order.shopOrders.find(
+            const shopOrder = a.order?.shopOrders?.find(
                 (so) => so._id.toString() === a.shopOrderId.toString()
             );
 
             return {
                 assignmentId: a._id,
-                orderId: a.order._id,
-                shopName: a.shop.name,
-                shopLocation: a.shop.location,
-                deliveryAddress: a.order.deliveryAddress,
+                orderId: a.order?._id,
+
+                shopName: a.shop?.name,
+                shopLocation: a.shop?.location,
+                shopAddress: a.shop?.address,
+
+                deliveryAddress: {
+                    receiverName: a.order?.deliveryAddress?.receiverName,
+                    mobileNumber: a.order?.deliveryAddress?.mobileNumber,
+                    latitude: a.order?.deliveryAddress?.latitude,
+                    longitude: a.order?.deliveryAddress?.longitude,
+                    city: a.order?.deliveryAddress?.city,
+                    streetArea: a.order?.deliveryAddress?.streetArea,
+                    landmark: a.order?.deliveryAddress?.landmark,
+                },
+
                 items: shopOrder?.items || [],
                 subtotal: shopOrder?.subtotal || 0,
+                status: shopOrder?.status,
             };
         });
 
