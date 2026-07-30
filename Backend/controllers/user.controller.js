@@ -34,30 +34,50 @@ export const getCurrentUser = async (req, res) => {
 
 export const updateRole = async (req, res) => {
     try {
+        const { role, mobile } = req.body;
 
-        const { role } = req.body;
+        const user = await User.findById(req.userId);
 
-        const user = await User.findByIdAndUpdate(
-            req.user._id,
-            {
-                role,
-                isProfileComplete: true
-            },
-            {
-                new: true
+        if (!user) {
+            return res.status(404).json({
+                success: false,
+                message: "User not found",
+            });
+        }
+        user.role = role;
+        if (mobile) {
+            const exists = await User.findOne({
+                mobile,
+                _id: { $ne: user._id },
+            });
+
+            if (exists) {
+                return res.status(400).json({
+                    success: false,
+                    message: "Mobile number already exists",
+                });
             }
-        ).select("-password");
+
+            user.mobile = mobile;
+        }
+        if (user.authType === "google") {
+            if (user.mobile) {
+                user.isProfileComplete = true;
+            }
+        } else {
+            user.isProfileComplete = true;
+        }
+
+        await user.save();
 
         return res.status(200).json({
             success: true,
-            user
+            user,
         });
-
     } catch (error) {
-
         return res.status(500).json({
             success: false,
-            message: error.message
+            message: error.message,
         });
     }
 };

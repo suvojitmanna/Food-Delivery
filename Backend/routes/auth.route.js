@@ -2,6 +2,7 @@ import express from "express";
 import passport from "passport";
 
 import {
+    completeProfile,
     googleAuthSuccess,
     resetPassword,
     sendOtp,
@@ -10,6 +11,7 @@ import {
     signup,
     verifyOtp,
 } from "../controllers/auth.controller.js";
+import { isAuth } from "../middleware/isAuth.js";
 
 const authRouter = express.Router();
 
@@ -23,10 +25,10 @@ authRouter.post("/reset-password", resetPassword);
 
 authRouter.get("/google", passport.authenticate("google", { scope: ["profile", "email"], })
 );
-
-/* google callback */
 authRouter.get("/google/callback", passport.authenticate("google", { session: false, failureRedirect: "/signin", }),
     googleAuthSuccess
+);
+authRouter.put("/select-role", isAuth, completeProfile
 );
 
 export default authRouter;

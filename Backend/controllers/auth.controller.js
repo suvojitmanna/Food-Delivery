@@ -280,13 +280,9 @@ export const googleAuthSuccess = async (req, res) => {
     }
 
     const token = jwt.sign(
-      {
-        id: req.user._id,
-      },
+      { id: req.user._id },
       process.env.JWT_SECRET_KEY,
-      {
-        expiresIn: "7d",
-      }
+      { expiresIn: "7d" }
     );
 
     res.cookie("token", token, {
@@ -296,13 +292,76 @@ export const googleAuthSuccess = async (req, res) => {
       maxAge: 7 * 24 * 60 * 60 * 1000,
     });
 
-    return res.redirect(`${process.env.VITE_CLIENT_URL}`);
+    if (!req.user.mobile) {
+      return res.redirect(
+        `${process.env.VITE_CLIENT_URL}/select-role`
+      );
+    }
+
+    return res.redirect(process.env.VITE_CLIENT_URL);
   } catch (error) {
     console.log(error.message);
 
-    return res.status(500).json({
+    res.status(500).json({
       success: false,
       message: "Internal Server Error",
+    });
+  }
+};
+
+export const completeProfile = async (req, res) => {
+  try {
+    const { mobile } = req.body;
+
+    if (!mobile) {
+      return res.status(400).json({
+        success: false,
+        message: "Mobile number is required",
+      });
+    }
+
+    if (mobile.length !== 10) {
+      return res.status(400).json({
+        success: false,
+        message: "Enter a valid mobile number",
+      });
+    }
+
+    const user = await User.findById(req.userId);
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
+    }
+
+    const alreadyExists = await User.findOne({
+      mobile,
+      _id: { $ne: user._id },
+    });
+
+    if (alreadyExists) {
+      return res.status(400).json({
+        success: false,
+        message: "Mobile number already exists",
+      });
+    }
+
+    user.mobile = mobile;
+    user.isProfileComplete = true;
+
+    await user.save();
+
+    res.status(200).json({
+      success: true,
+      user,
+    });
+
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message,
     });
   }
 };

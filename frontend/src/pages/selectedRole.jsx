@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import { serverUrl } from "../App";
-import { useDispatch } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 import { setUserData } from "../redux/userSlice";
 
 export default function RoleSelection() {
@@ -12,20 +12,45 @@ export default function RoleSelection() {
   const [hoveredRole, setHoveredRole] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  const user = useSelector((state) => state.user.userData);
+  const [mobile, setMobile] = useState(user?.mobile || "");
+
+  const isGoogleUser = user?.authType === "google";
+  const showMobileInput = isGoogleUser && !user?.mobile;
+
   const navigate = useNavigate();
   const dispatch = useDispatch();
 
   const handleSubmit = async () => {
     try {
       if (!selectedRole) return;
+
+      if (showMobileInput && mobile.length !== 10) {
+        alert("Enter a valid mobile number");
+        return;
+      }
+
       setIsSubmitting(true);
 
-      const result = await axios.put(
+      const payload = {
+        role: selectedRole,
+      };
+
+      if (showMobileInput) {
+        payload.mobile = mobile;
+      }
+
+      const { data } = await axios.put(
         `${serverUrl}/api/user/update-role`,
-        { role: selectedRole },
-        { withCredentials: true }
+        payload,
+        {
+          withCredentials: true,
+        },
       );
-      dispatch(setUserData(result.data.user));
+
+      dispatch(setUserData(data.user));
+      console.log(data);
+      console.log("Navigate Home");
       navigate("/");
     } catch (error) {
       console.log(error.response?.data || error.message);
@@ -38,24 +63,25 @@ export default function RoleSelection() {
     hidden: { opacity: 0 },
     visible: {
       opacity: 1,
-      transition: { 
+      transition: {
         staggerChildren: 0.08,
-        delayChildren: 0.05 
-      }
-    }
+        delayChildren: 0.05,
+      },
+    },
   };
 
   const elementVariants = {
     hidden: { y: 25, opacity: 0, scale: 0.98 },
-    visible: { 
-      y: 0, 
-      opacity: 1, 
+    visible: {
+      y: 0,
+      opacity: 1,
       scale: 1,
-      transition: { type: "spring", stiffness: 220, damping: 22 }
-    }
+      transition: { type: "spring", stiffness: 220, damping: 22 },
+    },
   };
 
-  const activeColor = roles.find((r) => r.key === selectedRole)?.color || "#1a1a24";
+  const activeColor =
+    roles.find((r) => r.key === selectedRole)?.color || "#1a1a24";
 
   return (
     <div className="min-h-screen w-full flex items-center justify-center p-4 sm:p-6 md:p-8 bg-[#fff9f6] text-[#1a1a24] font-sans box-border selection:bg-transparent">
@@ -95,8 +121,9 @@ export default function RoleSelection() {
                     borderColor: isSelected
                       ? role.color
                       : isHovered
-                      ? "rgba(26, 26, 36, 0.18)"
-                      : "rgba(26, 26, 36, 0.06)",
+                        ? "rgba(26, 26, 36, 0.18)"
+                        : "rgba(26, 26, 36, 0.06)",
+                    padding: "1.125rem",
                   }}
                 >
                   {/* Dynamic Layout morph background layer */}
@@ -109,7 +136,11 @@ export default function RoleSelection() {
                         exit={{ opacity: 0 }}
                         className="absolute inset-0 z-0 pointer-events-none"
                         style={{ backgroundColor: `${role.color}10` }}
-                        transition={{ type: "spring", stiffness: 300, damping: 28 }}
+                        transition={{
+                          type: "spring",
+                          stiffness: 300,
+                          damping: 28,
+                        }}
                       />
                     )}
                   </AnimatePresence>
@@ -117,8 +148,14 @@ export default function RoleSelection() {
                   {/* Component Core Content Wrapper */}
                   <div className="relative z-10 flex items-center gap-4 w-full">
                     <motion.span
-                      animate={{ scale: isSelected ? 1.08 : isHovered ? 1.04 : 1 }}
-                      transition={{ type: "spring", stiffness: 400, damping: 20 }}
+                      animate={{
+                        scale: isSelected ? 1.08 : isHovered ? 1.04 : 1,
+                      }}
+                      transition={{
+                        type: "spring",
+                        stiffness: 400,
+                        damping: 20,
+                      }}
                       className="text-[32px] sm:text-[34px] select-none filter drop-shadow-sm flex-shrink-0"
                     >
                       {role.icon}
@@ -134,13 +171,17 @@ export default function RoleSelection() {
                     </div>
 
                     {/* Premium Circle Dot Selector */}
-                    <div className="flex items-center justify-center w-5.5 h-5.5 rounded-full border border-[#1a1a24]/12 bg-white flex-shrink-0">
+                    <div className="flex items-center justify-center w-5 h-5 rounded-full border border-[#1a1a24]/12 bg-white flex-shrink-0">
                       {isSelected && (
                         <motion.div
                           layoutId="premiumActiveDot"
                           className="w-2.5 h-2.5 rounded-full"
                           style={{ backgroundColor: role.color }}
-                          transition={{ type: "spring", stiffness: 500, damping: 26 }}
+                          transition={{
+                            type: "spring",
+                            stiffness: 500,
+                            damping: 26,
+                          }}
                         />
                       )}
                     </div>
@@ -151,6 +192,33 @@ export default function RoleSelection() {
           </div>
         </div>
 
+        {isGoogleUser && (
+          <motion.div variants={elementVariants} className="mb-5">
+            <label className="block text-sm font-semibold mb-2">
+              Mobile Number
+            </label>
+
+            {user?.mobile ? (
+              <input
+                type="text"
+                value={user.mobile}
+                readOnly
+                className="w-full h-12 rounded-xl border border-gray-200 bg-gray-50 px-4 text-gray-700 cursor-not-allowed"
+              />
+            ) : (
+              <input
+                type="tel"
+                value={mobile}
+                onChange={(e) =>
+                  setMobile(e.target.value.replace(/\D/g, "").slice(0, 10))
+                }
+                placeholder="Enter mobile number"
+                className="w-full h-12 rounded-xl border border-gray-200 px-4 outline-none focus:border-green-500"
+              />
+            )}
+          </motion.div>
+        )}
+
         {/* Action Call to Action Button */}
         <motion.button
           variants={elementVariants}
@@ -158,11 +226,14 @@ export default function RoleSelection() {
           disabled={!selectedRole || isSubmitting}
           whileTap={selectedRole && !isSubmitting ? { scale: 0.985 } : {}}
           animate={{
-            backgroundColor: selectedRole ? activeColor : "rgba(26, 26, 36, 0.05)",
+            backgroundColor: selectedRole
+              ? activeColor
+              : "rgba(26, 26, 36, 0.05)",
             color: selectedRole ? "#ffffff" : "rgba(26, 26, 36, 0.3)",
-            boxShadow: selectedRole && !isSubmitting
-              ? `0 14px 28px -8px ${activeColor}40`
-              : "0 0px 0px rgba(0,0,0,0)",
+            boxShadow:
+              selectedRole && !isSubmitting
+                ? `0 14px 28px -8px ${activeColor}40`
+                : "0 0px 0px rgba(0,0,0,0)",
           }}
           transition={{ type: "spring", stiffness: 260, damping: 24 }}
           className={`
@@ -177,8 +248,19 @@ export default function RoleSelection() {
               fill="none"
               viewBox="0 0 24 24"
             >
-              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+              <circle
+                className="opacity-25"
+                cx="12"
+                cy="12"
+                r="10"
+                stroke="currentColor"
+                strokeWidth="4"
+              />
+              <path
+                className="opacity-75"
+                fill="currentColor"
+                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+              />
             </svg>
           ) : (
             "Continue"

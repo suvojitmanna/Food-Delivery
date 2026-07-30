@@ -5,19 +5,31 @@ const userSchema = new mongoose.Schema(
     fullName: {
       type: String,
       required: true,
+      trim: true,
     },
 
     email: {
       type: String,
       unique: true,
       required: true,
+      lowercase: true,
+      trim: true,
     },
+
     password: {
       type: String,
+      default: "",
     },
+
+    // Change Number -> String
     mobile: {
-      type: Number,
+      type: String,
+      trim: true,
+      default: "",
+      unique: true,
+      sparse: true,
     },
+
     role: {
       type: String,
       enum: ["user", "owner", "deliveryBoy"],
@@ -25,6 +37,11 @@ const userSchema = new mongoose.Schema(
     },
 
     isProfileComplete: {
+      type: Boolean,
+      default: false,
+    },
+
+    isMobileVerified: {
       type: Boolean,
       default: false,
     },
@@ -44,10 +61,12 @@ const userSchema = new mongoose.Schema(
 
     googleId: {
       type: String,
+      default: "",
     },
 
     profilePic: {
       type: String,
+      default: "",
     },
 
     authType: {
@@ -55,6 +74,7 @@ const userSchema = new mongoose.Schema(
       enum: ["local", "google"],
       default: "local",
     },
+
     location: {
       type: {
         type: String,
@@ -64,19 +84,21 @@ const userSchema = new mongoose.Schema(
       },
       coordinates: {
         type: [Number],
-        required: true,
+        default: [0, 0],
         validate: {
           validator: (value) => value.length === 2,
           message: "Coordinates must contain [longitude, latitude]",
         },
-        default: [0, 0],
       },
     },
   },
-  { timestamps: true }
+  {
+    timestamps: true,
+  }
 );
 
-userSchema.index({ location: "2dsphere" })
+userSchema.index({ location: "2dsphere" });
 
-const User = mongoose.model("User", userSchema)
-export default User
+const User = mongoose.model("User", userSchema);
+
+export default User;

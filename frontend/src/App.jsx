@@ -80,7 +80,7 @@ const App = () => {
   }, []);
 
   useGetCurrentUser();
-  UseUpdateLocation()
+  UseUpdateLocation();
   useGetCity();
   useGetMyShop();
   useGetByCity();
@@ -95,7 +95,7 @@ const App = () => {
     location.pathname.startsWith("/cart") ||
     location.pathname.startsWith("/multi-cart") ||
     location.pathname.startsWith("/menu") ||
-    location.pathname.startsWith("/DeliveryAddressPage")||
+    location.pathname.startsWith("/DeliveryAddressPage") ||
     location.pathname.startsWith("/order-placed");
 
   if (loading) {
