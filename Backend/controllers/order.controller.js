@@ -3,6 +3,7 @@ import Shop from "../models/shop.model.js";
 import User from "../models/user.model.js";
 import DeliveryAddress from "../models/address.model.js";
 import DeliverAssignment from "../models/deliveryAssignment.model.js";
+import mongoose from "mongoose";
 
 export const placeOrder = async (req, res) => {
     try {
@@ -383,16 +384,20 @@ export const getDeliveryAssignment = async (req, res) => {
 };
 
 export const acceptOrder = async (req, res) => {
+    const session = await mongoose.startSession();
     try {
+        session.startTransaction();
         const { assignmentId } = req.params;
-        const assignment = await DeliverAssignment.findById(assignmentId);
+        const assignment = await DeliverAssignment.findById(assignmentId).session(session);
         if (!assignment) {
+            await session.abortTransaction();
             return res.status(404).json({
                 success: false,
                 message: "Assignment not found",
             });
         }
         if (assignment.status !== "broadcasted") {
+            await session.abortTransaction();
             return res.status(400).json({
                 success: false,
                 message: "Assignment has already been accepted or expired",
@@ -401,42 +406,78 @@ export const acceptOrder = async (req, res) => {
         const alreadyAssigned = await DeliverAssignment.findOne({
             assignedTo: req.userId,
             status: "assigned",
-        });
+        }).session(session);
+
         if (alreadyAssigned) {
+            await session.abortTransaction();
             return res.status(400).json({
                 success: false,
                 message: "You are already assigned to another order",
             });
         }
-        assignment.assignedTo = req.userId;
-        assignment.status = "assigned";
-        assignment.acceptedAt = new Date();
-        await assignment.save();
-        const order = await Order.findById(assignment.order);
+
+        const order = await Order.findById(assignment.order).session(session);
         if (!order) {
+            await session.abortTransaction();
             return res.status(404).json({
                 success: false,
                 message: "Order not found",
             });
         }
+
         const shopOrder = order.shopOrders.find(
             (so) => so._id.toString() === assignment.shopOrderId.toString()
         );
         if (!shopOrder) {
+            await session.abortTransaction();
             return res.status(404).json({
                 success: false,
                 message: "Shop order not found",
             });
         }
+        if (shopOrder.assignDeliveryBoy) {
+            await session.abortTransaction();
+            return res.status(400).json({
+                success: false,
+                message: "Order already accepted",
+            });
+        }
+        assignment.assignedTo = req.userId;
+        assignment.status = "assigned";
+        assignment.acceptedAt = new Date();
+
+        await assignment.save({ session });
         shopOrder.assignDeliveryBoy = req.userId;
-        await order.save();
+        shopOrder.status = "out for delivery";
+
+        await order.save({ session });
+        await DeliverAssignment.updateMany(
+            {
+                order: assignment.order,
+                shopOrderId: assignment.shopOrderId,
+                _id: { $ne: assignment._id },
+                status: "broadcasted",
+            },
+            {
+                $set: {
+                    status: "cancelled",
+                },
+            },
+            { session }
+        );
+
+        await session.commitTransaction();
+        session.endSession();
+
         return res.status(200).json({
             success: true,
             message: "Order accepted successfully",
         });
-    } catch (error) {
-        console.error(error);
 
+    } catch (error) {
+        await session.abortTransaction();
+        session.endSession();
+        console.error(error);
         return res.status(500).json({
             success: false,
             message: error.message,
@@ -451,7 +492,10 @@ export const getCurrentOrder = async (req, res) => {
             status: "assigned",
         })
             .populate("shop", "name image location")
-            .populate("assignedTo", "fullName email mobile location")
+            .populate(
+                "assignedTo",
+                "fullName email mobile profilePic location"
+            )
             .populate({
                 path: "order",
                 populate: [
@@ -461,6 +505,10 @@ export const getCurrentOrder = async (req, res) => {
                     },
                     {
                         path: "deliveryAddress",
+                    },
+                    {
+                        path: "shopOrders.owner",
+                        select: "fullName email mobile profilePic",
                     },
                 ],
             });
@@ -510,6 +558,9 @@ export const getCurrentOrder = async (req, res) => {
             success: true,
             orderId: assignment.order._id,
             user: assignment.order.user,
+            shopMobile: shopOrder.owner?.mobile,
+            shopOwner: shopOrder.owner,
+            deliveryBoy: assignment.assignedTo,
             shop: assignment.shop,
             shopOrder,
             deliveryAddress: assignment.order.deliveryAddress,

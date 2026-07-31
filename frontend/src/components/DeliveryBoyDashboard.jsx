@@ -1,10 +1,17 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useSelector } from "react-redux";
 import axios from "axios";
 import Nav from "./Nav";
 import { serverUrl } from "../App";
-import { FiClock, FiMapPin, FiNavigation, FiCheck } from "react-icons/fi";
+import {
+  FiClock,
+  FiMapPin,
+  FiNavigation,
+  FiCheck,
+  FiLoader,
+} from "react-icons/fi";
 import DeliveryBoyTrackOrder from "./deliveryBoyTrackOrder";
+import { MdOutlineMarkEmailUnread } from "react-icons/md";
 
 // Calculate Distance in KM
 const calculateDistance = (lat1, lon1, lat2, lon2) => {
@@ -32,6 +39,8 @@ const DeliveryBoyDashboard = () => {
 
   const [availableAssignments, setAvailableAssignments] = useState([]);
   const [loadingAssignments, setLoadingAssignments] = useState(true);
+  const [acceptingId, setAcceptingId] = useState(null);
+  const [showOtpBox, setShowOtpBox] = useState(false);
 
   useEffect(() => {
     let isMounted = true;
@@ -76,14 +85,14 @@ const DeliveryBoyDashboard = () => {
         if (isMounted) setLocationName("Failed to get location");
       }
     };
-    
+
     fetchLocationName();
     return () => {
       isMounted = false;
     };
   }, [lat, lon]);
 
-  const getAssignments = async () => {
+  const getAssignments = useCallback(async () => {
     try {
       setLoadingAssignments(true);
       const result = await axios.get(`${serverUrl}/api/order/get-assignment`, {
@@ -92,49 +101,53 @@ const DeliveryBoyDashboard = () => {
       const assignments = result.data.assignments || result.data || [];
       setAvailableAssignments(assignments);
     } catch (error) {
-      console.log("Failed to fetch assignments:", error);
+      console.error("Failed to fetch assignments:", error);
     } finally {
       setLoadingAssignments(false);
     }
-  };
+  }, []);
 
-  const getCurrentOrder = async () => {
+  const getCurrentOrder = useCallback(async () => {
     try {
       const { data } = await axios.get(
         `${serverUrl}/api/order/get-current-order`,
         { withCredentials: true },
       );
-
       setCurrentOrder(data);
-      console.log(data);
     } catch (error) {
       setCurrentOrder(null);
-      console.log(error)
+      console.error(
+        "No current order or failed to fetch:",
+        error.response?.status,
+      );
     }
-  };
+  }, []);
 
   const handleAcceptOrder = async (assignmentId) => {
     try {
-      setLoadingAssignments(true);
-      const result = await axios.get(
-        `${serverUrl}/api/order/accept-order/${assignmentId}`,
-        {
-          withCredentials: true,
-        },
-      );
-      getCurrentOrder();
+      setAcceptingId(assignmentId);
+      await axios.get(`${serverUrl}/api/order/accept-order/${assignmentId}`, {
+        withCredentials: true,
+      });
+      await getCurrentOrder();
     } catch (error) {
-      console.log("Status:", error.response?.status);
-      console.log("Response:", error.response?.data);
+      console.error(
+        "Failed to accept order:",
+        error.response?.data || error.message,
+      );
     } finally {
-      setLoadingAssignments(false); 
+      setAcceptingId(null);
     }
   };
 
   useEffect(() => {
     getAssignments();
     getCurrentOrder();
-  }, []);
+  }, [getAssignments, getCurrentOrder]);
+
+  const handleSendOtp = (e) => {
+    setShowOtpBox(true);
+  };
 
   return (
     <div className="w-screen min-h-screen bg-[#F4F4F2] overflow-y-auto pb-12 font-sans">
@@ -237,6 +250,10 @@ const DeliveryBoyDashboard = () => {
                     1,
                   );
 
+                  // Ensure items exist before attempting to map
+                  const itemsList = assignment.items || [];
+                  const isAccepting = acceptingId === assignment.assignmentId;
+
                   return (
                     <div
                       key={assignment.assignmentId || index}
@@ -279,7 +296,7 @@ const DeliveryBoyDashboard = () => {
                             </h3>
                             <p className="text-sm text-gray-600 mt-1 leading-snug line-clamp-2">
                               {assignment.shopAddress ||
-                                "Shop address details not available in payload yet"}
+                                "Shop address details not available"}
                             </p>
                             <p className="text-xs text-gray-400 mt-1.5 font-medium flex items-center gap-1">
                               <FiNavigation
@@ -305,7 +322,6 @@ const DeliveryBoyDashboard = () => {
                               {assignment.deliveryAddress?.receiverName ||
                                 "Customer"}
                             </h3>
-                            {/* Customer Full Address */}
                             <p className="text-sm text-gray-600 mt-1 leading-snug line-clamp-3">
                               {assignment.deliveryAddress?.streetArea}
                               {assignment.deliveryAddress?.landmark && (
@@ -329,9 +345,9 @@ const DeliveryBoyDashboard = () => {
                       <div className="bg-gray-50 px-4 py-2.5 border-t border-b border-gray-100 text-xs text-gray-600 font-medium">
                         Contains{" "}
                         <span className="font-black text-gray-900">
-                          {assignment.items?.length} items
+                          {itemsList.length} items
                         </span>{" "}
-                        ({assignment.items?.map((i) => i.name).join(", ")})
+                        ({itemsList.map((i) => i.name).join(", ")})
                       </div>
 
                       <div className="p-4 bg-white">
@@ -339,9 +355,23 @@ const DeliveryBoyDashboard = () => {
                           onClick={() =>
                             handleAcceptOrder(assignment.assignmentId)
                           }
-                          className="w-full bg-green-600 hover:bg-green-700 text-white font-black py-4 rounded-xl shadow-md flex justify-center items-center gap-2 text-lg transition-transform active:scale-95 uppercase tracking-wide cursor-pointer"
+                          disabled={isAccepting}
+                          className={`w-full font-black py-4 rounded-xl shadow-md flex justify-center items-center gap-2 text-lg transition-transform uppercase tracking-wide ${
+                            isAccepting
+                              ? "bg-gray-300 text-gray-500 cursor-not-allowed"
+                              : "bg-green-600 hover:bg-green-700 text-white active:scale-95 cursor-pointer"
+                          }`}
                         >
-                          Accept Order <FiCheck size={22} />
+                          {isAccepting ? (
+                            <>
+                              Accepting{" "}
+                              <FiLoader className="animate-spin" size={22} />
+                            </>
+                          ) : (
+                            <>
+                              Accept Order <FiCheck size={22} />
+                            </>
+                          )}
                         </button>
                       </div>
                     </div>
@@ -363,10 +393,39 @@ const DeliveryBoyDashboard = () => {
             </div>
           </>
         ) : (
-          <DeliveryBoyTrackOrder
-            currentOrder={currentOrder}
-            refreshCurrentOrder={getCurrentOrder}
-          />
+          <>
+            <DeliveryBoyTrackOrder
+              currentOrder={currentOrder}
+              refreshCurrentOrder={getCurrentOrder}
+            />
+            {!showOtpBox ? (
+              <button
+                className="w-full flex items-center justify-center gap-2 bg-gradient-to-br from-green-500 to-emerald-700 hover:from-green-600 hover:to-emerald-800 text-white font-semibold py-2 px-4 rounded-xl shadow-md active:scale-95 transition-all duration-200 focus:outline-none"
+                onClick={handleSendOtp}
+              >
+                <MdOutlineMarkEmailUnread size={20} />
+                Mark as delivered
+              </button>
+            ) : (
+              <div className="p-4 border rounded-xl bg-gray-50">
+                <p className="text-sm font-semibold mb-3">
+                  Enter OTP sent to{" "}
+                  <span className="text-indigo-500">
+                    {currentOrder.user.fullName}
+                  </span>
+                </p>
+                <input
+                  type="text"
+                  autoFocus
+                  className="w-full border px-3 py-2 rounded-lg mb-3 focus:outline-none focus:ring-2 focus:ring-emerald-600"
+                  placeholder="Enter OTP"
+                />
+                <button className="w-full bg-emerald-600 text-white py-2 rounded-lg font-semibold hover:bg-emerald-700 transition-all focus:outline-none">
+                  Submit OTP
+                </button>
+              </div>
+            )}
+          </>
         )}
       </div>
     </div>
