@@ -143,7 +143,6 @@ const UserOrderPage = ({ orders = [] }) => {
     }
   };
 
-  const handleTrackOrder = (orderId) => navigate(`/orders/track/${orderId}`);
   const handleReorderItem = (item, shop) => {
     const normalizedItem = {
       ...item,
@@ -584,7 +583,6 @@ const UserOrderPage = ({ orders = [] }) => {
                     Details
                   </button>
 
-                  {/* Render Track if anything is still arriving, otherwise Reorder All */}
                   {isFullyDeliveredOrCancelled ? (
                     <button
                       onClick={() => handleReorderAll(order)}
@@ -595,7 +593,7 @@ const UserOrderPage = ({ orders = [] }) => {
                     </button>
                   ) : (
                     <button
-                      onClick={() => handleTrackOrder(order._id)}
+                      onClick={() => navigate(`/track-order/${order._id}`)}
                       className="flex-1 sm:flex-none px-4 sm:px-6 py-2.5 sm:py-3 rounded-xl bg-slate-900 text-white font-bold text-sm hover:bg-slate-800 transition-all flex items-center justify-center gap-2 active:scale-95 shadow-[0_4px_14px_0_rgba(0,0,0,0.2)] cursor-pointer"
                     >
                       <FiMapPin size={16} className="shrink-0" />

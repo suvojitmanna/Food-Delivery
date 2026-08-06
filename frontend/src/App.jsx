@@ -32,6 +32,7 @@ import useGetItemByCity from "./hooks/useGetItemByCity";
 import useGetMyOrders from "./hooks/useGetMyOrders";
 import { FiAlertCircle, FiCheckCircle } from "react-icons/fi";
 import UseUpdateLocation from "./hooks/useupdateLocation";
+import TrackOrder from "./components/trackOrder";
 
 export const serverUrl = import.meta.env.VITE_BASE_URL;
 
@@ -96,7 +97,8 @@ const App = () => {
     location.pathname.startsWith("/multi-cart") ||
     location.pathname.startsWith("/menu") ||
     location.pathname.startsWith("/DeliveryAddressPage") ||
-    location.pathname.startsWith("/order-placed");
+    location.pathname.startsWith("/order-placed") ||
+    location.pathname.startsWith("/track-order")
 
   if (loading) {
     return (
@@ -192,6 +194,7 @@ const App = () => {
         />
         <Route path="/order-placed" element={<OrderPlaced />} />
         <Route path="/my-order" element={<MyOrder />} />
+        <Route path="/track-order/:orderId" element={<TrackOrder />} />
       </Routes>
 
       {/* GLOBAL CART */}

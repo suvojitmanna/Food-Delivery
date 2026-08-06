@@ -576,3 +576,39 @@ export const getCurrentOrder = async (req, res) => {
         });
     }
 };
+
+export const getOrderById = async (req, res) => {
+    try {
+        const { orderId } = req.params;
+        const order = await Order.findById(orderId)
+            .populate("user")
+            .populate({
+                path: "shopOrders.shop",
+                model: "Shop",
+            })
+            .populate({
+                path: "shopOrders.assignDeliveryBoy",
+                model: "User",
+            })
+            .populate({
+                path: "shopOrders.items",
+                model: "Item",
+            });
+
+        if (!order) {
+            return res.status(404).json({
+                success: false,
+                message: "Order not found",
+            });
+        }
+        return res.status(200).json({
+            success: true,
+            order,
+        });
+    } catch (error) {
+        return res.status(500).json({
+            success: false,
+            message: `Get Order By Id Error: ${error.message}`,
+        });
+    }
+};
