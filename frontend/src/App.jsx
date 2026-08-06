@@ -98,7 +98,8 @@ const App = () => {
     location.pathname.startsWith("/menu") ||
     location.pathname.startsWith("/DeliveryAddressPage") ||
     location.pathname.startsWith("/order-placed") ||
-    location.pathname.startsWith("/track-order")
+    location.pathname.startsWith("/track-order") ||
+    location.pathname.startsWith("/my-order")
 
   if (loading) {
     return (

@@ -77,7 +77,8 @@ const DeliveryBoyTrackOrder = ({ currentOrder }) => {
   const deliveryBoyLon = Number(currentOrder.deliveryBoyLocation?.lon);
   const customerLat = Number(currentOrder.customerLocation?.lat);
   const customerLon = Number(currentOrder.customerLocation?.lon);
-
+console.log(customerLat)
+console.log(customerLon)
   if (
     isNaN(deliveryBoyLat) ||
     isNaN(deliveryBoyLon) ||

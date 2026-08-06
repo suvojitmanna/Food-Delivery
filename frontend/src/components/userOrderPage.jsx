@@ -343,7 +343,6 @@ const UserOrderPage = ({ orders = [] }) => {
 
         {/* Orders List */}
         {filteredOrders.map((order) => {
-          // Calculate overall status for multi-restaurant orders
           const allShopStatuses =
             order.shopOrders?.map((so) => so.status?.toLowerCase()) || [];
 

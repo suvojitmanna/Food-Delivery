@@ -8,6 +8,7 @@ const OrderPlaced = () => {
   const location = useLocation();
 
   const addressData = location.state?.address;
+  const orderId = location.state?.orderId;
 
   const displayAddress = addressData
     ? `${addressData.flatNo}, ${addressData.streetArea}`
@@ -16,12 +17,14 @@ const OrderPlaced = () => {
   const addressType = addressData?.addressType || "Home";
 
   useEffect(() => {
+    if (!orderId) return;
+
     const timer = setTimeout(() => {
-      navigate("/my-order", { replace: true });
+      navigate(`/track-order/${orderId}`, { replace: true });
     }, 2500);
 
     return () => clearTimeout(timer);
-  }, [navigate]);
+  }, [orderId, navigate]);
 
   return (
     <div className="min-h-screen bg-white flex flex-col items-center justify-center p-6 font-sans">

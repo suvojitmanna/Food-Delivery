@@ -173,7 +173,7 @@ const MultiCart = () => {
         dispatch(clearAllCart());
         dispatch(addMyOrder(data.order));
         glassToast("Order placed successfully!", "success");
-        navigate("/order");
+        navigate("/order-placed");
       }
     } catch (error) {
       glassToast(
