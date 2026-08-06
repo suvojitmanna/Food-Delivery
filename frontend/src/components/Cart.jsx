@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { useNavigate, useParams } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
@@ -9,27 +9,32 @@ import {
   FiTrash2,
   FiShoppingBag,
   FiChevronRight,
-  FiStar,
-  FiClock,
   FiMapPin,
   FiTag,
-  FiTruck,
   FiEdit3,
-  FiHeart,
+  FiInfo,
 } from "react-icons/fi";
 import { addToCart, clearAllCart, removeFromCart } from "../redux/cartSlice";
 import axios from "axios";
 import { glassToast, serverUrl } from "../App";
 import { addMyOrder } from "../redux/userSlice";
-import { IoIosArrowUp } from "react-icons/io";
+import { IoIosArrowUp, IoIosArrowDown } from "react-icons/io";
+import { FaStar } from "react-icons/fa";
+import { calculateShopsDeliveryMetrics } from "../../utils/location";
+
+const VegIcon = () => (
+  <div className="w-3.5 h-3.5 border border-[#24963F] flex items-center justify-center rounded-[2px] shrink-0 mt-0.5">
+    <div className="w-1.5 h-1.5 bg-[#24963F] rounded-full"></div>
+  </div>
+);
 
 const Cart = () => {
+  const { id, shopId } = useParams();
   const [paymentMethod, setPaymentMethod] = useState("COD");
   const [tipAmount, setTipAmount] = useState(0);
   const [cookingInstruction, setCookingInstruction] = useState("");
   const [showAddressList, setShowAddressList] = useState(false);
 
-  const { shopId } = useParams();
   const navigate = useNavigate();
   const dispatch = useDispatch();
 
@@ -43,6 +48,9 @@ const Cart = () => {
   const addressContainerRef = useRef(null);
 
   const cart = useSelector((state) => state.cart.carts[shopId]);
+  const { shopInMyCity, userData } = useSelector((state) => state.user);
+
+  const shop = shopInMyCity?.find((item) => item._id === (id || shopId));
 
   // Close menus on outside click
   useEffect(() => {
@@ -87,26 +95,63 @@ const Cart = () => {
     getAddresses();
   }, []);
 
+  const calculatedDistanceInfo = useMemo(() => {
+    if (!shop) return { distance: "2.5 km", time: "30-40 mins" };
+
+    const userCoords = userData?.location?.coordinates || [
+      userData?.location?.lng || userData?.location?.longitude,
+      userData?.location?.lat || userData?.location?.latitude,
+    ];
+
+    const shopForUtility = {
+      ...shop,
+      location: {
+        ...shop.location,
+        latitude:
+          shop?.location?.latitude ||
+          shop?.location?.lat ||
+          shop?.location?.coordinates?.[1],
+        longitude:
+          shop?.location?.longitude ||
+          shop?.location?.lng ||
+          shop?.location?.coordinates?.[0],
+      },
+    };
+
+    const [enhancedShop] = calculateShopsDeliveryMetrics(
+      [shopForUtility],
+      userCoords,
+    );
+
+    return {
+      distance: enhancedShop?.distance || shop?.distance || "2.5 km",
+      time: enhancedShop?.deliveryTime
+        ? `${enhancedShop.deliveryTime} mins`
+        : "30-40 mins",
+    };
+  }, [userData, shop]);
+
   if (!cart || !cart.items || Object.keys(cart.items).length === 0) {
     return (
-      <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center p-6 text-center">
+      <div className="min-h-screen bg-[#f8f8f8] flex flex-col items-center justify-center p-6 text-center font-sans">
         <motion.div
           initial={{ scale: 0.8, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
           transition={{ type: "spring", damping: 20, stiffness: 200 }}
-          className="w-24 h-24 bg-white rounded-full shadow-xl shadow-gray-200/50 flex items-center justify-center text-gray-300 mb-6"
+          className="w-32 h-32 bg-white rounded-full shadow-lg flex items-center justify-center text-gray-300 mb-6"
         >
-          <FiShoppingBag size={40} />
+          <FiShoppingBag size={50} />
         </motion.div>
         <h2 className="text-2xl font-black text-gray-900 mb-2">
           Your cart is empty
         </h2>
-        <p className="text-gray-500 mb-8 max-w-[250px]">
-          Looks like you haven't added anything from this restaurant yet.
+        <p className="text-gray-500 mb-8 max-w-[280px]">
+          Good food is always cooking! Go ahead, order some yummy items from the
+          menu.
         </p>
         <button
           onClick={() => navigate("/")}
-          className="bg-black text-white px-8 py-4 rounded-2xl font-bold shadow-xl shadow-black/20 active:scale-95 transition-all"
+          className="bg-[#E23744] text-white px-8 py-3.5 rounded-xl font-bold shadow-lg shadow-red-500/30 active:scale-95 transition-all"
         >
           Browse Restaurants
         </button>
@@ -115,15 +160,18 @@ const Cart = () => {
   }
 
   const items = Object.values(cart.items);
+
   const itemTotal = items.reduce(
     (sum, item) => sum + item.price * item.quantity,
     0,
   );
+
   const gstTotal = items.reduce(
     (sum, item) =>
       sum + (item.price * item.quantity * (Number(item.gst) || 0)) / 100,
     0,
   );
+
   const packingFeeTotal = items.reduce(
     (sum, item) => sum + (item.hasPackingFee ? 10 * item.quantity : 0),
     0,
@@ -172,17 +220,17 @@ const Cart = () => {
       const { data } = await axios.post(
         `${serverUrl}/api/order/place-order`,
         payload,
-        {
-          withCredentials: true,
-        },
+        { withCredentials: true },
       );
 
       if (data.success) {
         dispatch(clearAllCart());
         dispatch(addMyOrder(data.order));
+
         navigate("/order-placed", {
           state: {
             address: selectedAddress,
+            orderId: data.order._id,
           },
         });
       }
@@ -195,28 +243,146 @@ const Cart = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-100 pb-32 font-sans">
-      {/*HEADER NAVIGATION*/}
-      <header className="sticky top-0 z-50 bg-white shadow-sm">
-        <div className="px-4 py-4 flex items-center gap-4 max-w-3xl mx-auto">
+    <div className="min-h-screen bg-[#f4f4f5] pb-32 font-sans text-gray-800 selection:bg-red-100">
+      {/* HEADER  */}
+      <header className="sticky top-0 z-50 bg-white shadow-sm px-4 py-3 sm:py-4 flex items-center justify-between">
+        {/* Left Side*/}
+        <div className="flex items-center gap-3">
           <button
             onClick={() => navigate(-1)}
-            className="text-gray-900 active:scale-90 transition-transform"
+            className="p-1 -ml-1 active:scale-90 transition-transform"
           >
-            <FiArrowLeft size={24} className="cursor-pointer" />
+            <FiArrowLeft size={24} className="text-gray-800" />
           </button>
-          <h1 className="font-bold text-gray-900 text-lg">Checkout</h1>
+          <div className="flex flex-col">
+            <h1 className="font-extrabold text-lg sm:text-xl text-gray-900 leading-tight truncate max-w-[180px] sm:max-w-[300px]">
+              {shop?.name || "Checkout"}
+            </h1>
+            <p className="text-[11px] sm:text-xs text-gray-500 font-medium mt-0.5 flex items-center gap-1">
+              <span className="w-1.5 h-1.5 rounded-full bg-[#24963F]"></span>
+              {calculatedDistanceInfo.distance} • {calculatedDistanceInfo.time}
+            </p>
+          </div>
+        </div>
+
+        {/* Right Side*/}
+        <div className="flex flex-col items-center bg-[#24963F] text-white rounded-xl shadow-sm overflow-hidden shrink-0">
+          <div className="px-3 py-1.5 flex items-center gap-1 font-bold text-base sm:text-lg">
+            {shop?.rating || "4.2"} <FaStar className="text-[12px]" />
+          </div>
+          <div className="bg-white text-gray-500 text-[9px] sm:text-[10px] font-bold uppercase tracking-wider px-2 py-1 w-full text-center border-t border-gray-100">
+            {shop?.totalReviews >= 1000
+              ? `${(shop.totalReviews / 1000).toFixed(1)}k`
+              : shop?.totalReviews || "1k+"}{" "}
+            Ratings
+          </div>
         </div>
       </header>
 
-      <div className="max-w-3xl mx-auto px-4 py-4 space-y-4">
-        {/*ITEMS SECTION*/}
-        <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
-          <h3 className="font-black text-gray-900 mb-4 pb-4 border-b border-gray-100">
-            Your Order ({items.length})
-          </h3>
+      <div className="max-w-2xl mx-auto p-3 sm:p-4 space-y-4">
+        {/* DELIVERY ADDRESS CARD */}
+        <div
+          ref={addressContainerRef}
+          className="bg-white rounded-2xl p-4 shadow-sm"
+        >
+          {!showAddressList ? (
+            <div className="flex items-start justify-between">
+              <div className="flex items-start gap-3">
+                <div className="bg-[#f4f4f5] p-2 rounded-lg text-[#E23744] mt-0.5">
+                  <FiMapPin size={20} />
+                </div>
+                <div>
+                  <h3 className="font-extrabold text-gray-900 text-base flex items-center gap-2">
+                    Delivering to {selectedAddress?.addressType || "Home"}
+                  </h3>
+                  {selectedAddress ? (
+                    <>
+                      <p className="text-gray-500 text-sm mt-0.5 line-clamp-1 font-medium">
+                        {selectedAddress.flatNo}, {selectedAddress.streetArea}
+                      </p>
+                      <p className="text-gray-400 text-xs mt-1">
+                        {selectedAddress.receiverName} •{" "}
+                        {selectedAddress.mobileNumber}
+                      </p>
+                    </>
+                  ) : (
+                    <p className="text-gray-500 text-sm mt-1">
+                      No Address Selected
+                    </p>
+                  )}
+                </div>
+              </div>
+              <button
+                onClick={() => setShowAddressList(true)}
+                className="text-[#E23744] font-bold text-sm bg-red-50 px-3 py-1.5 rounded-lg active:scale-95 transition-transform"
+              >
+                Change
+              </button>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              <div className="flex items-center justify-between mb-3 border-b border-gray-100 pb-3">
+                <h3 className="font-extrabold text-gray-900 text-base">
+                  Choose a delivery address
+                </h3>
+                <button
+                  onClick={() => setShowAddressList(false)}
+                  className="text-gray-400 p-1 hover:bg-gray-100 rounded-full"
+                >
+                  <FiArrowLeft size={20} className="rotate-180" />
+                </button>
+              </div>
 
-          <div className="space-y-6">
+              <div className="space-y-3 max-h-[400px] overflow-y-auto scrollbar-hide">
+                {addresses.map((address) => (
+                  <div
+                    key={address._id}
+                    className={`relative flex items-start justify-between p-3.5 rounded-xl border transition-colors cursor-pointer ${
+                      selectedAddress?._id === address._id
+                        ? "border-[#E23744] bg-red-50/30"
+                        : "border-gray-200 hover:border-gray-300"
+                    }`}
+                    onClick={() => {
+                      setSelectedAddress(address);
+                      setShowAddressList(false);
+                    }}
+                  >
+                    <div className="flex gap-3">
+                      <FiMapPin
+                        className={`mt-1 ${selectedAddress?._id === address._id ? "text-[#E23744]" : "text-gray-400"}`}
+                        size={18}
+                      />
+                      <div className="flex-1 pr-2">
+                        <div className="flex items-center gap-2">
+                          <h4 className="font-bold text-gray-900 text-sm">
+                            {address.addressType || "Home"}
+                          </h4>
+                        </div>
+                        <p className="text-gray-500 text-xs mt-1 leading-relaxed">
+                          {address.flatNo}, {address.streetArea}
+                        </p>
+                        <p className="text-gray-400 text-xs mt-1 font-medium">
+                          {address.mobileNumber}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <button
+                onClick={() => navigate("/DeliveryAddressPage")}
+                className="w-full py-3.5 mt-2 border border-gray-200 text-[#E23744] bg-white rounded-xl font-bold text-sm hover:bg-gray-50 transition-colors flex items-center justify-center gap-2 shadow-sm"
+              >
+                <FiPlus /> Add new address
+              </button>
+            </div>
+          )}
+        </div>
+
+        {/* ITEMS SECTION */}
+        <div className="bg-white rounded-2xl p-4 shadow-sm">
+          <div className="space-y-5">
             <AnimatePresence>
               {items.map((item) => (
                 <motion.div
@@ -224,44 +390,65 @@ const Cart = () => {
                   layout
                   className="flex flex-col gap-2"
                 >
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <h4 className="font-bold text-gray-900 text-base">
-                        {item.name}
-                      </h4>
-                      <p className="text-gray-700 font-semibold text-sm mt-1">
-                        ₹{item.price.toLocaleString("en-IN")}
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex items-start gap-2 flex-1">
+                      <VegIcon />
+                      {item.image && (
+                        <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-lg overflow-hidden shrink-0 border border-gray-100 bg-gray-50">
+                          <img
+                            src={item.image}
+                            alt={item.name}
+                            className="w-full h-full object-cover"
+                          />
+                        </div>
+                      )}
+                      <div className="flex-1">
+                        <h4 className="font-semibold text-gray-800 text-sm leading-snug">
+                          {item.name}
+                        </h4>
+                        <p className="text-gray-800 font-medium text-sm mt-1">
+                          ₹{item.price.toLocaleString("en-IN")}
+                        </p>
+                        {item.addons && (
+                          <p className="text-gray-400 text-xs mt-1">
+                            Extra Cheese
+                          </p>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="flex flex-col items-end gap-2 shrink-0">
+                      <div className="flex items-center bg-[#FFF1F2] border border-[#F43F5E] rounded-lg overflow-hidden shadow-sm h-8">
+                        <button
+                          onClick={() =>
+                            dispatch(
+                              removeFromCart({ shopId, itemId: item._id }),
+                            )
+                          }
+                          className="w-8 h-full flex items-center justify-center text-[#E23744] active:bg-red-100 transition-colors"
+                        >
+                          {item.quantity === 1 ? (
+                            <FiTrash2 size={14} />
+                          ) : (
+                            <FiMinus size={14} />
+                          )}
+                        </button>
+                        <span className="font-bold text-sm text-[#E23744] w-6 text-center">
+                          {item.quantity}
+                        </span>
+                        <button
+                          onClick={() => dispatch(addToCart(item))}
+                          className="w-8 h-full flex items-center justify-center text-[#E23744] active:bg-red-100 transition-colors"
+                        >
+                          <FiPlus size={14} />
+                        </button>
+                      </div>
+                      <p className="font-bold text-sm text-gray-800">
+                        ₹{(item.price * item.quantity).toLocaleString("en-IN")}
                       </p>
                     </div>
-                    <div className="flex items-center gap-3 bg-green-50/50 border border-green-100 rounded-lg p-1">
-                      <button
-                        onClick={() =>
-                          dispatch(removeFromCart({ shopId, itemId: item._id }))
-                        }
-                        className="w-7 h-7 flex items-center justify-center rounded-md text-red-600 bg-white shadow-sm"
-                      >
-                        {item.quantity === 1 ? (
-                          <FiTrash2 size={14} />
-                        ) : (
-                          <FiMinus size={14} />
-                        )}
-                      </button>
-                      <span className="font-bold text-sm text-red-600 min-w-[16px] text-center">
-                        {item.quantity}
-                      </span>
-                      <button
-                        onClick={() => dispatch(addToCart(item))}
-                        className="w-7 h-7 flex items-center justify-center rounded-md text-red-600 bg-white shadow-sm"
-                      >
-                        <FiPlus size={14} />
-                      </button>
-                    </div>
                   </div>
-                  {/* Mock Addon details to match wireframe */}
-                  {item.addons && (
-                    <p className="text-gray-500 text-xs mt-1">Extra Cheese</p>
-                  )}
-                  <div className="border-b border-gray-100 pb-2"></div>
+                  <div className="border-b border-gray-100 border-dashed mt-2"></div>
                 </motion.div>
               ))}
             </AnimatePresence>
@@ -269,268 +456,167 @@ const Cart = () => {
 
           <button
             onClick={() => navigate(`/menu/${shopId}`)}
-            className="w-full mt-2 py-3 text-green-500 font-bold text-sm flex items-center justify-center gap-2 hover:bg-green-50 rounded-xl transition-colors border-dotted"
+            className="w-full mt-3 py-3 text-[#E23744] font-medium text-sm flex items-center justify-center gap-2 hover:bg-red-50 rounded-xl transition-colors"
           >
-            <FiPlus /> Add More Items
+            <FiPlus /> Add more items
           </button>
         </div>
 
-        {/*COUPON SECTION*/}
-        <button className="w-full bg-white border border-gray-100 rounded-2xl p-4 shadow-sm flex items-center justify-between active:scale-[0.98] transition-transform">
+        {/* INSTRUCTIONS */}
+        <div className="bg-white rounded-2xl p-4 shadow-sm">
+          <div className="flex items-start gap-3">
+            <FiEdit3 className="text-gray-400 mt-1" size={18} />
+            <div className="flex-1">
+              <input
+                type="text"
+                value={cookingInstruction}
+                onChange={(e) => setCookingInstruction(e.target.value)}
+                placeholder="Add cooking instructions"
+                className="w-full bg-transparent text-sm text-gray-800 placeholder-gray-400 focus:outline-none"
+              />
+              <div className="h-[1px] w-full bg-gray-200 mt-2 transition-colors focus-within:bg-[#E23744]"></div>
+            </div>
+          </div>
+        </div>
+
+        {/* OFFERS / COUPONS */}
+        <button className="w-full bg-white rounded-2xl p-4 shadow-sm flex items-center justify-between active:scale-[0.98] transition-transform">
           <div className="flex items-center gap-3">
-            <FiTag className="text-blue-600" size={20} />
-            <span className="font-bold text-gray-800">Apply Coupon</span>
+            <div className="bg-blue-50 p-2 rounded-full text-blue-600">
+              <FiTag size={18} />
+            </div>
+            <div className="text-left">
+              <span className="font-extrabold text-gray-800 block text-sm">
+                View offers / Apply coupon
+              </span>
+              <span className="text-xs text-gray-500 font-medium">
+                Unlock exclusive discounts
+              </span>
+            </div>
           </div>
           <FiChevronRight className="text-gray-400" size={20} />
         </button>
 
-        {/*DELIVERY ADDRESS*/}
-        <div
-          ref={addressContainerRef}
-          className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100"
-        >
-          {!showAddressList ? (
-            /*COMPACT VIEW (Selected Address)*/
-            <div className="flex items-start justify-between">
-              <div className="flex items-start gap-3">
-                <div className="mt-1 text-orange-500">
-                  <FiMapPin size={22} />
+        {/* TIP DELIVERY PARTNER */}
+        <div className="flex gap-3 overflow-visible pt-3 pb-2 scrollbar-hide">
+          {[20, 30, 50].map((amount) => (
+            <button
+              key={amount}
+              onClick={() => setTipAmount(amount === tipAmount ? 0 : amount)}
+              className={`flex-shrink-0 relative w-20 h-12 rounded-xl border flex items-center justify-center font-bold text-sm transition-all duration-200 ${
+                tipAmount === amount
+                  ? "bg-red-50 border-[#E23744] text-[#E23744]"
+                  : "bg-white border-gray-200 text-gray-700 hover:border-gray-300"
+              }`}
+            >
+              {/* Popular Badge for 30 */}
+              {amount === 30 && (
+                <div className="absolute -top-3 left-1/2 -translate-x-1/2 z-10">
+                  <div className="bg-orange-50 border border-orange-200 rounded-full px-2 py-0.5 shadow-sm whitespace-nowrap">
+                    <span className="text-orange-600 text-[10px] font-bold flex items-center gap-1 animate-bounce">
+                      🔥 Popular
+                    </span>
+                  </div>
                 </div>
-                {selectedAddress ? (
-                  <div>
-                    <h3 className="font-bold text-gray-900 flex items-center gap-2">
-                      {selectedAddress.addressType || "Home"}
-                    </h3>
-                    <p className="text-gray-800 font-medium text-sm mt-1">
-                      {selectedAddress.receiverName} •{" "}
-                      {selectedAddress.mobileNumber}
-                    </p>
-                    <p className="text-gray-500 text-sm mt-0.5 line-clamp-2">
-                      {selectedAddress.flatNo}, {selectedAddress.streetArea}
-                    </p>
-                  </div>
-                ) : (
-                  <p className="text-gray-500 font-medium pt-1">
-                    No Address Selected
-                  </p>
-                )}
-              </div>
-              <button
-                onClick={() => setShowAddressList(true)}
-                className="text-orange-600 font-bold text-sm hover:underline cursor-pointer"
-              >
-                Change
-              </button>
-            </div>
-          ) : (
-            /*All Addresses*/
-            <div className="space-y-4">
-              <div className="flex items-center justify-between mb-2">
-                <h3 className="font-bold text-gray-900 flex items-center gap-2">
-                  <FiMapPin className="text-orange-500" size={18} />
-                  Select Delivery Address
-                </h3>
-                <button
-                  onClick={() => setShowAddressList(false)}
-                  className="text-gray-500 text-sm font-medium hover:text-gray-800 cursor-pointer"
-                >
-                  Cancel
-                </button>
-              </div>
-
-              <div className="space-y-3 max-h-[300px] overflow-y-auto scrollbar-hide">
-                {addresses.map((address) => (
-                  <div
-                    key={address._id}
-                    className={`relative flex items-start justify-between p-3 rounded-xl border transition-colors cursor-pointer ${
-                      selectedAddress?._id === address._id
-                        ? "border-orange-500 bg-orange-50/50"
-                        : "border-gray-200 hover:border-orange-300"
-                    }`}
-                    onClick={() => {
-                      setSelectedAddress(address);
-                      setShowAddressList(false);
-                    }}
-                  >
-                    <div className="flex-1 pr-4">
-                      <div className="flex items-center gap-2">
-                        <h4 className="font-bold text-gray-900 text-sm">
-                          {address.addressType || "Home"}
-                        </h4>
-                        {address.isDefault && (
-                          <span className="text-[10px] bg-gray-200 text-gray-700 px-2 py-0.5 rounded-full font-bold uppercase">
-                            Default
-                          </span>
-                        )}
-                      </div>
-                      <p className="text-gray-800 font-medium text-xs mt-1">
-                        {address.receiverName} • {address.mobileNumber}
-                      </p>
-                      <p className="text-gray-500 text-xs mt-1 line-clamp-1">
-                        {address.flatNo}, {address.streetArea}
-                      </p>
-                    </div>
-
-                    {/* Edit Button */}
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        navigate(`/DeliveryAddressPage/${address._id}`);
-                      }}
-                      className="p-2 text-gray-400 hover:text-orange-600 bg-white rounded-lg border border-gray-100 shadow-sm transition-colors"
-                    >
-                      <FiEdit3 size={14} />
-                    </button>
-                  </div>
-                ))}
-              </div>
-
-              {/* Add New Address Button */}
-              <button
-                onClick={() => navigate("/DeliveryAddressPage")}
-                className="w-full py-3 mt-2 border-2 border-dashed border-orange-300 text-orange-600 bg-orange-50/30 rounded-xl font-bold text-sm hover:bg-orange-50 transition-colors"
-              >
-                + Add New Address
-              </button>
-            </div>
-          )}
-        </div>
-
-        {/*INSTRUCTIONS FOR RESTAURANT*/}
-        <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
-          <div className="flex items-center gap-2 mb-3 text-gray-800 font-bold">
-            <FiEdit3 size={18} />
-            <h3>Instructions for Restaurant</h3>
-          </div>
-          <textarea
-            value={cookingInstruction}
-            onChange={(e) => setCookingInstruction(e.target.value)}
-            placeholder="E.g. Less spicy, No onion, Add utensils..."
-            className="w-full bg-gray-50 border border-gray-200 rounded-xl p-3 text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500 resize-none h-20"
-          ></textarea>
-        </div>
-
-        {/*TIP DELIVERY PARTNER*/}
-        <div className="bg-white rounded-3xl p-5 shadow-sm border border-gray-100">
-          <div className="flex flex-col mb-4">
-            <div className="flex items-center gap-2 text-gray-900 font-black text-lg">
-              <h3>Say thanks with a tip</h3>
-              <FiHeart className="text-green-500 fill-green-500" size={20} />
-            </div>
-            <span className="text-xs text-gray-500 mt-1 font-medium">
-              100% of the tip goes to your delivery partner
-            </span>
-          </div>
-
-          <div className="flex gap-4 overflow-visible pt-5">
-            {[20, 30, 50].map((amount) => (
-              <button
-                key={amount}
-                onClick={() => setTipAmount(amount === tipAmount ? 0 : amount)}
-                className={`relative w-[88px] h-20 rounded-2xl border-2 flex items-center justify-center flex-col font-bold transition-all duration-300 ${
-                  tipAmount === amount
-                    ? "bg-green-50 border-green-500 text-green-600 shadow-sm"
-                    : "bg-white border-gray-100 text-gray-700 hover:border-gray-200"
-                }`}
-              >
-                {amount === 50 && tipAmount !== 50 && (
-                  <div className="absolute -top-4 left-1/2 -translate-x-1/2 z-20 animate-bounce">
-                    <div className="bg-orange-50 border border-orange-200 rounded-full px-3 py-1 shadow-sm">
-                      <span className="text-orange-500 text-[11px] font-semibold flex items-center gap-1 whitespace-nowrap">
-                        🔥 Popular
-                      </span>
-                    </div>
-                  </div>
-                )}
-                <span className="text-xl">₹{amount}</span>
-              </button>
-            ))}
-
-            <button className="flex-shrink-0 w-[88px] h-20 rounded-2xl font-semibold border-2 border-gray-100 text-gray-600 bg-white hover:border-gray-200 transition-colors flex items-center justify-center">
-              Custom
+              )}
+              ₹{amount}
             </button>
-          </div>
+          ))}
+
+          <button className="flex-shrink-0 w-20 h-12 rounded-xl font-semibold border border-gray-200 text-gray-600 bg-white hover:border-gray-300 transition-colors flex items-center justify-center text-sm">
+            Custom
+          </button>
         </div>
 
-        {/* BILL DETAILS ACCORDION */}
-        <div
-          className="relative w-full overflow-hidden bg-white border border-gray-200 rounded-2xl shadow-sm"
-          ref={billRef}
-        >
+        {/* BILL DETAILS */}
+        <div className="bg-white rounded-2xl p-4 shadow-sm" ref={billRef}>
           <button
             onClick={() => setShowBill(!showBill)}
-            className="w-full flex items-center justify-between px-5 py-4 hover:bg-gray-50 transition-colors z-10 relative bg-white"
+            className="w-full flex items-center justify-between text-left"
           >
-            <span className="font-semibold text-gray-800 tracking-wide">
-              View Bill Details
+            <span className="font-extrabold text-gray-800 text-sm">
+              Bill Details
             </span>
+
             <div className="flex items-center gap-2">
-              <span className="font-bold text-lg text-[#ff4d2d]">
-                ₹{grandTotal.toLocaleString("en-IN")}
-              </span>
-              <IoIosArrowUp
-                className={`text-gray-500 transition-transform duration-300 ${
-                  showBill ? "rotate-180" : ""
-                }`}
-              />
+              {!showBill && (
+                <span className="font-extrabold text-red-600 text-sm">
+                  ₹{grandTotal.toLocaleString("en-IN")}
+                </span>
+              )}
+
+              {/* Toggle Arrows */}
+              {showBill ? (
+                <IoIosArrowUp className="text-gray-500 text-lg" />
+              ) : (
+                <IoIosArrowDown className="text-gray-500 text-lg" />
+              )}
             </div>
           </button>
-
           <AnimatePresence>
             {showBill && (
               <motion.div
                 initial={{ height: 0, opacity: 0 }}
                 animate={{ height: "auto", opacity: 1 }}
                 exit={{ height: 0, opacity: 0 }}
-                className="border-t border-gray-100 bg-white"
+                className="overflow-hidden"
               >
-                <div className="p-4 space-y-3 text-sm">
-                  <div className="flex justify-between text-gray-600">
+                <div className="pt-4 space-y-3 text-sm text-gray-600 font-medium">
+                  <div className="flex justify-between">
                     <span>Item Total</span>
                     <span>₹{itemTotal.toLocaleString("en-IN")}</span>
                   </div>
 
-                  <div className="flex justify-between text-gray-600">
-                    <span>GST</span>
-                    <span>₹{Math.round(gstTotal).toLocaleString("en-IN")}</span>
+                  <div className="flex justify-between">
+                    <span className="flex items-center gap-1 cursor-pointer border-b border-dashed border-gray-400">
+                      Delivery fee for {calculatedDistanceInfo.distance}
+                    </span>
+                    {deliveryFee === 0 ? (
+                      <div className="flex gap-2">
+                        <span className="line-through text-gray-400">₹40</span>
+                        <span className="text-blue-600 font-bold">FREE</span>
+                      </div>
+                    ) : (
+                      <span>₹{deliveryFee}</span>
+                    )}
                   </div>
 
-                  {packingFeeTotal > 0 && (
-                    <div className="flex justify-between text-gray-600">
-                      <span>Packing</span>
-                      <span>₹{packingFeeTotal.toLocaleString("en-IN")}</span>
-                    </div>
-                  )}
-
-                  <div className="flex justify-between text-gray-600">
-                    <span>Platform Fee</span>
+                  <div className="flex justify-between">
+                    <span>Platform fee</span>
                     <span>₹{platformFee}</span>
                   </div>
 
-                  <div className="flex justify-between text-gray-600">
-                    <span>Delivery Fee</span>
-                    <span className="text-blue-600 font-bold">FREE</span>
+                  <div className="flex justify-between">
+                    <span>GST and Restaurant Charges</span>
+                    <span>
+                      ₹
+                      {Math.round(gstTotal + packingFeeTotal).toLocaleString(
+                        "en-IN",
+                      )}
+                    </span>
                   </div>
 
                   {tipAmount > 0 && (
-                    <div className="flex justify-between text-gray-600">
+                    <div className="flex justify-between text-gray-800">
                       <span>Delivery Tip</span>
                       <span>₹{tipAmount}</span>
                     </div>
                   )}
 
                   {couponDiscount > 0 && (
-                    <div className="flex justify-between text-green-600">
-                      <span>Coupon Discount</span>
+                    <div className="flex justify-between text-blue-600">
+                      <span>Item Discount</span>
                       <span>-₹{couponDiscount}</span>
                     </div>
                   )}
 
-                  <div className="border-t border-dashed border-gray-200 mt-4 pt-4 flex justify-between items-center">
-                    <span className="font-black text-gray-900 text-base">
-                      Total
+                  <div className="my-2 border-t border-gray-200 border-dashed"></div>
+
+                  <div className="flex justify-between items-center pb-1">
+                    <span className="font-extrabold text-gray-900 text-base">
+                      To Pay
                     </span>
-                    <span className="font-black text-xl text-gray-900">
+                    <span className="font-extrabold text-red-600 text-base">
                       ₹{grandTotal.toLocaleString("en-IN")}
                     </span>
                   </div>
@@ -541,102 +627,98 @@ const Cart = () => {
         </div>
 
         {/* CANCELLATION POLICY */}
-        <div className="bg-gray-50 rounded-2xl p-4 border border-gray-200 mt-2">
-          <h3 className="font-bold text-gray-700 text-xs uppercase tracking-wider mb-1.5">
-            Cancellation Policy
-          </h3>
-          <p className="text-gray-500 text-xs leading-relaxed font-medium">
-            A 100% cancellation charge will apply. This helps us compensate the
-            restaurant partner for food preparation.
-          </p>
+        <div className="bg-gray-100 rounded-xl p-4 flex gap-3 items-start">
+          <FiInfo className="text-gray-500 shrink-0 mt-0.5" />
+          <div>
+            <h3 className="font-bold text-gray-700 text-xs mb-1">
+              Review your order and address details to avoid cancellations
+            </h3>
+            <p className="text-gray-500 text-[11px] leading-relaxed">
+              <span className="text-red-500 font-semibold">Note:</span> If you
+              choose to cancel, you can do it within 60 seconds after placing
+              order. A 100% cancellation fee will be applicable afterwards.
+            </p>
+          </div>
         </div>
       </div>
 
-      {/* PAYMENT OPTIONS POPOVER */}
-      <div className="fixed bottom-0 left-0 right-0 z-[100] bg-white border-t border-gray-100  pb-safe shadow-[0_-8px_20px_-15px_rgba(0,0,0,0.15)] pl-5 pr-5">
-        <div className="max-w-3xl mx-auto flex items-center justify-between gap-3">
-          <div className="relative flex-[1]" ref={paymentMenuRef}>
-            <div
-              onClick={() => setShowPaymentMenu(!showPaymentMenu)}
-              className="flex flex-col cursor-pointer p-2 -ml-2 rounded-xl hover:bg-gray-50 transition-colors"
-            >
-              <span className="text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-0.5 flex items-center gap-1.5">
-                Pay Using <span className="w-1 h-1 rounded-full bg-gray-300" />{" "}
-                {paymentMethod === "COD" ? "Cash" : "Online"}
-              </span>
-              <div className="flex items-center gap-1.5">
-                <span className="font-black text-xl sm:text-2xl text-gray-900">
-                  ₹{grandTotal.toLocaleString("en-IN")}
-                </span>
-                <IoIosArrowUp
-                  className="text-gray-900 text-lg transition-transform duration-300"
-                  style={{
-                    transform: showPaymentMenu
-                      ? "rotate(0deg)"
-                      : "rotate(180deg)",
-                  }}
-                />
-              </div>
+      {/* BOTTOM ACTION BAR*/}
+      <div className="fixed bottom-0 left-0 right-0 z-50 bg-white p-3 sm:p-4 shadow-[0_-4px_20px_-10px_rgba(0,0,0,0.15)] rounded-t-2xl">
+        <div
+          className="max-w-2xl mx-auto flex items-center justify-between gap-3 relative"
+          ref={paymentMenuRef}
+        >
+          {/* Payment Method Selector */}
+          <div
+            onClick={() => setShowPaymentMenu(!showPaymentMenu)}
+            className="flex flex-col cursor-pointer bg-gray-50 px-4 py-2 rounded-xl border border-gray-100 min-w-[120px]"
+          >
+            <div className="flex items-center gap-1 text-[10px] font-bold text-gray-500 uppercase tracking-wider">
+              Pay Using{" "}
+              <IoIosArrowUp
+                className={`transition-transform duration-200 ${showPaymentMenu ? "rotate-180" : ""}`}
+              />
             </div>
-
-            {/* PAYMENT OPTIONS POPOVER */}
-            <AnimatePresence>
-              {showPaymentMenu && (
-                <motion.div
-                  initial={{ opacity: 0, y: 10, scale: 0.95 }}
-                  animate={{ opacity: 1, y: 0, scale: 1 }}
-                  exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                  transition={{ duration: 0.2 }}
-                  className="absolute bottom-full mb-4 left-0 w-64 bg-white rounded-3xl p-3 shadow-2xl border border-gray-100 z-50 overflow-hidden"
-                >
-                  <h3 className="font-bold text-gray-400 text-xs uppercase tracking-wider mb-2 px-3 pt-1">
-                    Payment Options
-                  </h3>
-                  <div className="space-y-1">
-                    {["Online", "COD"].map((method) => (
-                      <button
-                        key={method}
-                        onClick={() => {
-                          setPaymentMethod(method);
-                          setShowPaymentMenu(false);
-                        }}
-                        className={`w-full flex items-center justify-between px-4 py-3.5 rounded-2xl transition-all duration-200 ${
-                          paymentMethod === method
-                            ? "bg-green-50 border border-green-100"
-                            : "bg-white hover:bg-gray-50 border border-transparent"
-                        }`}
-                      >
-                        <span
-                          className={`font-bold text-sm ${
-                            paymentMethod === method
-                              ? "text-green-700"
-                              : "text-gray-700"
-                          }`}
-                        >
-                          {method === "COD" ? "Cash on Delivery" : "Pay Online"}
-                        </span>
-                        {paymentMethod === method && (
-                          <div className="w-4 h-4 rounded-full bg-green-500 flex items-center justify-center shadow-sm">
-                            <div className="w-1.5 h-1.5 bg-white rounded-full" />
-                          </div>
-                        )}
-                      </button>
-                    ))}
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
+            <div className="font-black text-sm text-gray-900 mt-0.5">
+              {paymentMethod === "COD" ? "Cash" : "Online"}
+            </div>
           </div>
 
-          {/* ACTION BUTTON (Right Side) */}
+          {/* Payment Popup */}
+          <AnimatePresence>
+            {showPaymentMenu && (
+              <motion.div
+                initial={{ opacity: 0, y: 20, scale: 0.95 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: 20, scale: 0.95 }}
+                transition={{ duration: 0.2 }}
+                className="absolute bottom-full mb-3 left-0 w-64 bg-white rounded-2xl p-2 shadow-2xl border border-gray-100 z-50"
+              >
+                <div className="p-2 pb-1 border-b border-gray-50 mb-1">
+                  <h3 className="font-bold text-gray-800 text-sm">
+                    Select Payment Method
+                  </h3>
+                </div>
+                {["Online", "COD"].map((method) => (
+                  <button
+                    key={method}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setPaymentMethod(method);
+                      setShowPaymentMenu(false);
+                    }}
+                    className={`w-full flex items-center justify-between px-3 py-3 rounded-xl transition-colors ${
+                      paymentMethod === method
+                        ? "bg-red-50/50 text-[#E23744]"
+                        : "text-gray-700 hover:bg-gray-50"
+                    }`}
+                  >
+                    <span className="font-bold text-sm">
+                      {method === "COD" ? "Cash on Delivery" : "Pay Online"}
+                    </span>
+                    {paymentMethod === method && (
+                      <div className="w-4 h-4 rounded-full border-4 border-[#E23744]"></div>
+                    )}
+                  </button>
+                ))}
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {/* Place Order Button */}
           <button
             onClick={handlePlaceOrder}
-            className="flex-[1.2] h-14 bg-green-600 hover:bg-green-700 text-white rounded-2xl flex items-center justify-between px-5 font-bold active:scale-[0.97] transition-all shadow-lg shadow-green-600/30 cursor-pointer"
+            className="flex-1 bg-green-600 text-white rounded-xl py-3.5 px-4 font-bold text-base flex items-center justify-between active:scale-[0.98] transition-transform shadow-lg shadow-red-500/20"
           >
-            <span className="text-base sm:text-lg">
-              {paymentMethod === "COD" ? "Place Order" : "Proceed to Pay"}
-            </span>
-            <FiChevronRight className="text-xl stroke-[3]" />
+            <div className="flex flex-col items-start leading-tight">
+              <span className="text-white text-base">Place Order</span>
+            </div>
+            <div className="flex items-center gap-1">
+              <span className="text-sm font-semibold">
+                ₹{grandTotal.toLocaleString("en-IN")}
+              </span>
+              <FiChevronRight size={18} />
+            </div>
           </button>
         </div>
       </div>

@@ -20,12 +20,10 @@ import axios from "axios";
 import { serverUrl } from "../App";
 import { AnimatePresence, motion } from "framer-motion";
 
-// Import your custom asset icons (Fallback to Leaflet default if unavailable)
 import Boy from "../assets/scooter.png";
 import Home from "../assets/Home.png";
 import Routing from "./routing";
 
-// --- Leaflet Icons ---
 const deliveryIcon = new L.Icon({
   iconUrl: Boy,
   iconSize: [45, 45],
@@ -38,7 +36,6 @@ const customerIcon = new L.Icon({
   iconAnchor: [20, 40],
 });
 
-// Custom Shop Icon using HTML/CSS (No image asset required)
 const shopIcon = new L.divIcon({
   className: "custom-shop-marker",
   html: `<div style="background-color: #f97316; width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; border: 3px solid white; box-shadow: 0 4px 6px rgba(0,0,0,0.3);">
@@ -48,7 +45,6 @@ const shopIcon = new L.divIcon({
   iconAnchor: [20, 40],
 });
 
-// Helper component to center Leaflet map dynamically
 const MapUpdater = ({ center }) => {
   const map = useMap();
   useEffect(() => {
@@ -59,7 +55,6 @@ const MapUpdater = ({ center }) => {
   return null;
 };
 
-// Haversine formula to compute distance in km
 const calculateDistance = (lat1, lon1, lat2, lon2) => {
   if (!lat1 || !lon1 || !lat2 || !lon2) return null;
   if (lat1 === lat2 && lon1 === lon2) return 0;
@@ -89,11 +84,9 @@ const TrackOrderPage = () => {
     duration: 0,
   });
 
-  // Bill Details states
   const [showBill, setShowBill] = useState(false);
   const billRef = useRef(null);
 
-  // Fetch Order Details by ID
   const handleGetTrackOrder = async () => {
     try {
       setLoading(true);
@@ -115,21 +108,21 @@ const TrackOrderPage = () => {
     }
   }, [orderId]);
 
-  // Extracts
   const shopOrder = order?.shopOrders?.[0];
   const deliveryBoy = shopOrder?.assignDeliveryBoy;
   const shop = shopOrder?.shop;
   const deliveryAddress = order?.deliveryAddress;
+  const isAddressObject =
+    typeof deliveryAddress === "object" && deliveryAddress !== null;
 
   const currentStatus = (shopOrder?.status || "pending").toLowerCase();
 
-  const isAssigningPartner =
-    !deliveryBoy &&
-    ["accepted", "preparing", "picked", "out for delivery"].includes(
-      currentStatus,
-    );
+  const isOutForDeliveryOrLater = ["out for delivery", "delivered"].includes(
+    currentStatus,
+  );
+  const isAssigningPartner = isOutForDeliveryOrLater && !deliveryBoy;
+  const showDeliveryBoyDetails = isOutForDeliveryOrLater && !!deliveryBoy;
 
-  // Bill Calculations
   const itemTotal = shopOrder?.subtotal || 0;
   const gstTotal = shopOrder?.tax || shopOrder?.gst || 0;
   const packingFeeTotal = shopOrder?.packingFee || 0;
@@ -138,32 +131,53 @@ const TrackOrderPage = () => {
   const couponDiscount = shopOrder?.discount || 0;
   const grandTotal = order?.totalAmount || shopOrder?.total || 0;
 
-  // --- Dynamic Location Logic ---
-  // If delivery partner is assigned, start from Partner. Otherwise, start from Shop.
-  const shopLat = Number(shop?.location?.coordinates?.[1] || 0);
-  const shopLon = Number(shop?.location?.coordinates?.[0] || 0);
+  const shopLat = Number(
+    shop?.location?.coordinates?.[1] ||
+      shop?.location?.latitude ||
+      shop?.location?.lat ||
+      0,
+  );
+  const shopLon = Number(
+    shop?.location?.coordinates?.[0] ||
+      shop?.location?.longitude ||
+      shop?.location?.lng ||
+      0,
+  );
 
-  const boyLat = Number(deliveryBoy?.location?.coordinates?.[1] || 0);
-  const boyLon = Number(deliveryBoy?.location?.coordinates?.[0] || 0);
-
-  const startLat = deliveryBoy ? boyLat : shopLat;
-  const startLon = deliveryBoy ? boyLon : shopLon;
+  const boyLat = Number(
+    deliveryBoy?.location?.coordinates?.[1] ||
+      deliveryBoy?.location?.latitude ||
+      deliveryBoy?.location?.lat ||
+      0,
+  );
+  const boyLon = Number(
+    deliveryBoy?.location?.coordinates?.[0] ||
+      deliveryBoy?.location?.longitude ||
+      deliveryBoy?.location?.lng ||
+      0,
+  );
 
   const customerLat = Number(
     order?.user?.location?.coordinates?.[1] ||
-      deliveryAddress?.location?.lat ||
+      (isAddressObject
+        ? deliveryAddress?.location?.lat || deliveryAddress?.latitude
+        : 0) ||
       0,
   );
   const customerLon = Number(
     order?.user?.location?.coordinates?.[0] ||
-      deliveryAddress?.location?.lon ||
+      (isAddressObject
+        ? deliveryAddress?.location?.lng || deliveryAddress?.longitude
+        : 0) ||
       0,
   );
+
+  const startLat = showDeliveryBoyDetails ? boyLat : shopLat;
+  const startLon = showDeliveryBoyDetails ? boyLon : shopLon;
 
   const startPosition = [startLat, startLon];
   const customerPosition = [customerLat, customerLon];
 
-  // Estimated Travel Time calculation
   const estimatedTime = useMemo(() => {
     const minsPerKm = 3;
     const distanceKm = calculateDistance(
@@ -262,38 +276,59 @@ const TrackOrderPage = () => {
 
   return (
     <div className="min-h-[100dvh] w-full bg-slate-50 font-sans pb-8 overflow-x-hidden flex flex-col">
-      {/* Top Navigation Bar */}
-      <div className="sticky top-0 z-50 w-full bg-white/90 backdrop-blur-md border-b border-slate-200 px-4 py-3 sm:py-4 flex items-center gap-3 shadow-sm">
-        <button
-          onClick={() => navigate(-1)}
-          aria-label="Go back"
-          className="p-2 bg-slate-100 text-slate-700 rounded-full hover:bg-slate-200 transition-colors cursor-pointer shrink-0"
-        >
-          <FiArrowLeft size={20} />
-        </button>
-        <div>
-          <h1 className="text-lg font-black text-slate-800 tracking-tight truncate">
-            Track Order
-          </h1>
-          <p className="text-xs text-slate-400 font-medium">
-            Order #{orderId?.slice(-8)}
-          </p>
+      {/* Top Navigation Bar with Header Status */}
+      <div className="sticky top-0 z-50 w-full bg-white/90 backdrop-blur-md border-b border-slate-200 px-4 py-3 sm:py-4 flex items-center justify-between shadow-sm">
+        <div className="flex items-center gap-3 overflow-hidden">
+          <button
+            onClick={() => navigate("/")}
+            aria-label="Go back"
+            className="p-2 bg-slate-100 text-slate-700 rounded-full hover:bg-slate-200 transition-colors cursor-pointer shrink-0"
+          >
+            <FiArrowLeft size={20} />
+          </button>
+          <div className="min-w-0">
+            <h1 className="text-lg font-black text-slate-800 tracking-tight truncate">
+              Track Order
+            </h1>
+            <p className="text-[10px] sm:text-xs text-slate-400 font-medium uppercase tracking-wider">
+              ID: {orderId?.slice(-8)}
+            </p>
+          </div>
+        </div>
+        <div className="flex flex-col items-end shrink-0 pl-2">
+          <span className="text-[9px] sm:text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+            Status
+          </span>
+          <span className="text-xs sm:text-sm font-black text-orange-600 uppercase">
+            {currentStatus}
+          </span>
         </div>
       </div>
 
       {/* Main Content Area */}
       <div className="w-full max-w-xl mx-auto px-3 sm:px-4 pt-4 pb-6 flex flex-col gap-4 sm:gap-5 flex-1">
-        {/* Custom Progress / ETA Card */}
+
         <div className="w-full bg-gradient-to-br from-orange-500 to-rose-600 rounded-[1.5rem] sm:rounded-[2rem] p-5 sm:p-6 text-white shadow-xl shadow-orange-200/50 relative overflow-hidden shrink-0">
           <div className="absolute top-0 right-0 w-32 h-32 sm:w-40 sm:h-40 bg-white/10 rounded-full blur-3xl -mr-10 -mt-10 pointer-events-none"></div>
 
           <div className="relative z-10">
             <div className="flex justify-between items-start mb-6">
               <div>
-                <p className="text-orange-100 text-[13px] sm:text-sm font-medium uppercase tracking-wider mb-1 flex items-center gap-1.5">
-                  <FiCheckCircle size={14} className="text-orange-200" />
-                  {shopOrder?.status || "Processing"}
-                </p>
+                <div className="flex items-center gap-2 mb-1">
+                  <p className="text-orange-100 text-[13px] sm:text-sm font-bold uppercase tracking-wider flex items-center gap-1.5">
+                    <FiCheckCircle size={15} className="text-orange-200" />
+                    {shopOrder?.status || "Processing"}
+                  </p>
+                  {shopOrder?.updatedAt && (
+                    <span className="text-orange-200 text-[10px] sm:text-[11px] font-semibold bg-white/10 px-2 py-0.5 rounded-full border border-white/10">
+                      {new Date(shopOrder.updatedAt).toLocaleTimeString([], {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })}
+                    </span>
+                  )}
+                </div>
+
                 <div className="flex items-center gap-6 sm:gap-8 mt-4">
                   <div>
                     <p className="text-[11px] sm:text-xs text-orange-200 uppercase tracking-wide">
@@ -341,11 +376,9 @@ const TrackOrderPage = () => {
           </div>
         </div>
 
-        {/* Live Map Section - ALWAYS VISIBLE */}
-        {/* Live Map Section - ALWAYS VISIBLE */}
         <div className="w-full h-[35vh] min-h-[250px] sm:h-[400px] bg-slate-200 relative rounded-2xl sm:rounded-3xl overflow-hidden shadow-sm border border-slate-200 shrink-0 z-0">
           <MapContainer
-            center={startLat !== 0 ? startPosition : [22.5726, 88.3639]} // Fallback center if 0
+            center={startLat !== 0 ? startPosition : [22.5726, 88.3639]}
             zoom={14}
             style={{ width: "100%", height: "100%" }}
             zoomControl={false}
@@ -358,7 +391,6 @@ const TrackOrderPage = () => {
               url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
             />
 
-            {/* Only render routing if both start & customer coordinates exist */}
             {Routing && startLat !== 0 && customerLat !== 0 && (
               <Routing
                 start={startPosition}
@@ -367,14 +399,15 @@ const TrackOrderPage = () => {
               />
             )}
 
-            {/* Start Marker (Shop or Delivery Partner) */}
             {startLat !== 0 && (
               <Marker
                 position={startPosition}
-                icon={deliveryBoy ? deliveryIcon : shopIcon}
+                icon={showDeliveryBoyDetails ? deliveryIcon : shopIcon}
               >
                 <Popup>
-                  {deliveryBoy ? "Delivery Partner" : "Shop Location"}
+                  {showDeliveryBoyDetails
+                    ? "Delivery Partner"
+                    : "Shop Location"}
                 </Popup>
               </Marker>
             )}
@@ -383,7 +416,9 @@ const TrackOrderPage = () => {
             {customerLat !== 0 && (
               <Marker position={customerPosition} icon={customerIcon}>
                 <Popup>
-                  {deliveryAddress?.receiverName || "Delivery Location"}
+                  {isAddressObject
+                    ? deliveryAddress.receiverName
+                    : order?.user?.fullName || "Delivery Location"}
                 </Popup>
               </Marker>
             )}
@@ -392,7 +427,6 @@ const TrackOrderPage = () => {
 
         {/* Details Section */}
         <div className="w-full space-y-4 relative z-10 flex-1">
-          {/* Partner Assignment Status OR Assigned Partner Card */}
           {isAssigningPartner ? (
             <div className="bg-white rounded-2xl p-5 shadow-sm border border-orange-100 flex flex-col items-center justify-center text-center relative overflow-hidden">
               <div className="absolute inset-0 bg-orange-50/40"></div>
@@ -416,7 +450,7 @@ const TrackOrderPage = () => {
                 </p>
               </div>
             </div>
-          ) : deliveryBoy ? (
+          ) : showDeliveryBoyDetails ? (
             <div className="bg-white rounded-2xl p-4 shadow-sm border border-slate-100 flex items-center justify-between">
               <div className="flex items-center gap-3 sm:gap-4 overflow-hidden">
                 <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-slate-100 border border-slate-200 flex items-center justify-center text-slate-400 shrink-0 overflow-hidden">
@@ -454,11 +488,11 @@ const TrackOrderPage = () => {
               )}
             </div>
           ) : null}
-
-          {/* Dynamic Order Status Timeline */}
           <div className="bg-white rounded-2xl p-4 sm:p-5 shadow-sm border border-slate-100">
-            <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-5 flex items-center gap-2">
-              <FiClock /> Order Status Timeline
+            <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-5 flex items-center justify-between">
+              <span className="flex items-center gap-2">
+                <FiClock /> Order Status Timeline
+              </span>
             </h4>
 
             <div className="relative pl-3 space-y-6">
@@ -495,7 +529,6 @@ const TrackOrderPage = () => {
                     >
                       {step.label}
                     </span>
-
                     {index === 0 && shopOrder?.createdAt && (
                       <span className="text-[10px] sm:text-[11px] font-bold text-slate-400 shrink-0">
                         {new Date(shopOrder.createdAt).toLocaleTimeString([], {
@@ -504,9 +537,8 @@ const TrackOrderPage = () => {
                         })}
                       </span>
                     )}
-
                     {step.active && index !== 0 && shopOrder?.updatedAt && (
-                      <span className="text-[10px] sm:text-[11px] font-bold text-orange-400 shrink-0">
+                      <span className="text-[10px] sm:text-[11px] font-bold text-orange-600 shrink-0 bg-orange-50 px-2.5 py-1 rounded-md border border-orange-100">
                         {new Date(shopOrder.updatedAt).toLocaleTimeString([], {
                           hour: "2-digit",
                           minute: "2-digit",
@@ -519,8 +551,8 @@ const TrackOrderPage = () => {
             </div>
           </div>
 
-          {/* Delivery Address Details */}
-          {deliveryAddress && (
+          {/* Delivery / Customer Details Fallback */}
+          {isAddressObject ? (
             <div className="bg-white rounded-2xl p-4 sm:p-5 shadow-sm border border-slate-100 flex items-start gap-3 sm:gap-4">
               <div className="w-10 h-10 bg-rose-50 text-rose-500 rounded-xl flex items-center justify-center shrink-0">
                 <FiMapPin size={20} />
@@ -538,7 +570,7 @@ const TrackOrderPage = () => {
                 </div>
 
                 <p className="font-bold text-slate-800 text-sm sm:text-base capitalize mb-0.5 truncate">
-                  {deliveryAddress.receiverName || order?.user?.fullName}
+                  {deliveryAddress.receiverName}
                 </p>
                 <p className="text-xs sm:text-sm font-medium text-slate-500 leading-snug break-words">
                   {deliveryAddress.flatNo && `${deliveryAddress.flatNo}, `}
@@ -553,7 +585,24 @@ const TrackOrderPage = () => {
                 )}
               </div>
             </div>
-          )}
+          ) : order?.user ? (
+            <div className="bg-white rounded-2xl p-4 sm:p-5 shadow-sm border border-slate-100 flex items-start gap-3 sm:gap-4">
+              <div className="w-10 h-10 bg-rose-50 text-rose-500 rounded-xl flex items-center justify-center shrink-0">
+                <FiUser size={20} />
+              </div>
+              <div className="flex-1 min-w-0">
+                <h4 className="text-[10px] sm:text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">
+                  Customer Details
+                </h4>
+                <p className="font-bold text-slate-800 text-sm sm:text-base capitalize mb-0.5 truncate">
+                  {order.user.fullName}
+                </p>
+                <p className="text-xs sm:text-sm font-medium text-slate-500 leading-snug break-words">
+                  {order.user.email}
+                </p>
+              </div>
+            </div>
+          ) : null}
 
           {/* Shop & Items Summary */}
           <div className="bg-white rounded-2xl p-4 sm:p-5 shadow-sm border border-slate-100">
@@ -634,9 +683,11 @@ const TrackOrderPage = () => {
                   View Bill Details
                 </span>
                 <div className="flex items-center gap-2">
-                  <span className="font-bold text-lg text-[#ff4d2d]">
-                    ₹{grandTotal.toLocaleString("en-IN")}
-                  </span>
+                  {!showBill && (
+                    <span className="font-bold text-lg text-[#ff4d2d]">
+                      ₹{grandTotal.toLocaleString("en-IN")}
+                    </span>
+                  )}
                   <IoIosArrowUp
                     className={`text-gray-500 transition-transform duration-300 ${
                       showBill ? "rotate-180" : ""
@@ -703,7 +754,7 @@ const TrackOrderPage = () => {
                         <span className="font-black text-gray-900 text-base">
                           Total
                         </span>
-                        <span className="font-black text-xl text-gray-900">
+                        <span className="font-black text-xl text-red-600">
                           ₹{grandTotal.toLocaleString("en-IN")}
                         </span>
                       </div>

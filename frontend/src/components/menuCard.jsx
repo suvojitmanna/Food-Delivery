@@ -197,7 +197,6 @@ const MenuCard = () => {
               {shop?.description || "Multi-Cuisine, Beverages, Desserts"}
             </p>
 
-            {/* ZOMATO STYLE OPEN TIMING */}
             <div className="flex items-center gap-1.5 mt-2">
               <div className="w-2 h-2 rounded-full bg-[#24963F] animate-pulse"></div>
               <span className="text-[#24963F] text-[13px] font-bold">
@@ -412,7 +411,6 @@ const MenuCard = () => {
         </div>
       </div>
 
-      {/* ZOMATO-STYLE FULL SCREEN SEARCH OVERLAY */}
       <AnimatePresence>
         {isSearchActive && (
           <motion.div
@@ -452,8 +450,6 @@ const MenuCard = () => {
                 </button>
               )}
             </div>
-
-            {/* Search Results List (Zomato style layout) */}
             <div className="flex-1 overflow-y-auto bg-white px-4 py-2 pb-24">
               {searchResults?.length > 0 ? (
                 searchResults.map((item) => (
@@ -554,7 +550,6 @@ const MenuCard = () => {
         )}
       </AnimatePresence>
 
-      {/* FLOATING MENU BUTTON (ZOMATO STYLE) */}
       <motion.button
         onClick={() => setIsMenuOpen(true)}
         className={`fixed right-5 z-30 bg-black/90 text-white shadow-2xl rounded-full px-5 py-3.5 flex items-center gap-2.5 font-bold transition-all duration-300 hover:scale-105 ${
