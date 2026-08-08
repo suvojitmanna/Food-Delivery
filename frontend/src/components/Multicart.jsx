@@ -125,20 +125,17 @@ const MultiCart = () => {
 
   const calculateDistance = (lat1, lon1, lat2, lon2) => {
     const R = 6371; // KM
-
     const dLat = ((lat2 - lat1) * Math.PI) / 180;
     const dLon = ((lon2 - lon1) * Math.PI) / 180;
-
     const a =
       Math.sin(dLat / 2) ** 2 +
       Math.cos((lat1 * Math.PI) / 180) *
         Math.cos((lat2 * Math.PI) / 180) *
         Math.sin(dLon / 2) ** 2;
-
     const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-
     return R * c;
   };
+
   const getShopDistance = (shop) => {
     if (
       selectedAddress?.latitude == null ||
@@ -149,19 +146,16 @@ const MultiCart = () => {
       return null;
     }
 
-    // DELIVERY ADDRESS coordinates
     const addressLat = Number(selectedAddress.latitude);
     const addressLng = Number(selectedAddress.longitude);
-
-    // SHOP coordinates
     const shopLat = Number(shop.location.latitude);
     const shopLng = Number(shop.location.longitude);
 
     return calculateDistance(addressLat, addressLng, shopLat, shopLng);
   };
+
   const deliveryStatus = activeCarts.map(([shopId, cart]) => {
     const distance = getShopDistance(cart.shop);
-
     return {
       shopId,
       distance,
@@ -171,6 +165,7 @@ const MultiCart = () => {
 
   const allShopsDeliverable =
     deliveryStatus.length > 0 && deliveryStatus.every((shop) => shop.available);
+
   // Early return if EVERYTHING is empty
   if (activeCarts.length === 0) {
     return (
@@ -242,19 +237,15 @@ const MultiCart = () => {
     try {
       if (!selectedAddress) {
         glassToast("Please select a delivery address.", "error");
-
         navigate("/DeliveryAddressPage");
         return;
       }
 
       if (!allShopsDeliverable) {
-        glassToast("This address is outside the delivery area.", "error");
-
-        return;
-      }
-      if (!selectedAddress) {
-        glassToast("Please select a delivery address.", "error");
-        navigate("/DeliveryAddressPage");
+        glassToast(
+          "One or more restaurants are outside the delivery area.",
+          "error",
+        );
         return;
       }
 
@@ -341,6 +332,21 @@ const MultiCart = () => {
                         {selectedAddress.receiverName} •{" "}
                         {selectedAddress.mobileNumber}
                       </p>
+
+                      {/* FIXED GLOBAL DELIVERY CHECK */}
+                      <div className="mt-2">
+                        {allShopsDeliverable ? (
+                          <p className="text-[11px] font-bold text-green-600 flex items-center gap-1 bg-green-50 px-2 py-1 rounded-md inline-flex">
+                            <span className="w-1.5 h-1.5 rounded-full bg-green-500"></span>
+                            Delivery available for all restaurants
+                          </p>
+                        ) : (
+                          <p className="text-[11px] font-bold text-red-500 flex items-center gap-1 bg-red-50 px-2 py-1 rounded-md inline-flex">
+                            <span className="w-1.5 h-1.5 rounded-full bg-red-500"></span>
+                            One or more restaurants are outside delivery range
+                          </p>
+                        )}
+                      </div>
                     </>
                   ) : (
                     <p className="text-gray-500 text-sm mt-1">
@@ -446,18 +452,20 @@ const MultiCart = () => {
         {/* MULTIPLE RESTAURANTS BLOCKS */}
         {activeCarts.map(([shopId, cart]) => {
           const shopDistance = getShopDistance(cart.shop);
-
           const shopDeliveryAvailable =
             shopDistance !== null && shopDistance <= 7;
-
           const shopItems = Object.values(cart.items);
 
           const shopSubtotal = shopItems.reduce(
             (sum, item) => sum + item.price * item.quantity,
             0,
           );
+
           return (
-            <div key={shopId} className="bg-white rounded-2xl p-4 shadow-sm">
+            <div
+              key={shopId}
+              className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100"
+            >
               <div className="flex items-start justify-between border-b border-dashed border-gray-200 pb-4 mb-4">
                 <div className="flex gap-3">
                   {/* Restaurant Image */}
@@ -474,7 +482,23 @@ const MultiCart = () => {
                       {cart.shop?.name || "Restaurant"}
                     </h3>
 
-                    <div className="flex items-center gap-1.5 mt-1">
+                    {/* NEW: Specific Shop Distance Info */}
+                    <div className="mt-1">
+                      {shopDistance !== null ? (
+                        <p
+                          className={`text-[10px] font-bold ${shopDeliveryAvailable ? "text-green-600" : "text-red-500"}`}
+                        >
+                          {shopDistance.toFixed(1)} km away{" "}
+                          {!shopDeliveryAvailable && "• Too far to deliver"}
+                        </p>
+                      ) : (
+                        <p className="text-[10px] text-gray-400">
+                          Select address to see distance
+                        </p>
+                      )}
+                    </div>
+
+                    <div className="flex items-center gap-1.5 mt-1.5">
                       <div className="flex items-center gap-1 bg-[#24963F] text-white px-1.5 py-0.5 rounded text-[10px] font-bold shadow-sm">
                         {cart?.shop?.rating || "4.2"}{" "}
                         <FaStar size={9} className="mb-[1px]" />
@@ -487,21 +511,6 @@ const MultiCart = () => {
                         reviews)
                       </span>
                     </div>
-                    {shopDistance !== null && (
-                      <div className="mt-1.5">
-                        {shopDeliveryAvailable ? (
-                          <p className="text-[11px] font-bold text-green-600 flex items-center gap-1">
-                            <span className="w-1.5 h-1.5 rounded-full bg-green-500"></span>
-                            Delivery available • {shopDistance.toFixed(1)} km
-                          </p>
-                        ) : (
-                          <p className="text-[11px] font-bold text-red-500 flex items-center gap-1">
-                            <span className="w-1.5 h-1.5 rounded-full bg-red-500"></span>
-                            Not deliverable • {shopDistance.toFixed(1)} km away
-                          </p>
-                        )}
-                      </div>
-                    )}
                   </div>
                 </div>
 
@@ -605,7 +614,7 @@ const MultiCart = () => {
         })}
 
         {/* INSTRUCTIONS */}
-        <div className="bg-white rounded-2xl p-4 shadow-sm">
+        <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
           <div className="flex items-start gap-3">
             <FiEdit3 className="text-gray-400 mt-1" size={18} />
             <div className="flex-1">
@@ -622,7 +631,7 @@ const MultiCart = () => {
         </div>
 
         {/* OFFERS / COUPONS */}
-        <button className="w-full bg-white rounded-2xl p-4 shadow-sm flex items-center justify-between active:scale-[0.98] transition-transform">
+        <button className="w-full bg-white rounded-2xl p-4 shadow-sm flex items-center justify-between active:scale-[0.98] transition-transform border border-gray-100 cursor-pointer">
           <div className="flex items-center gap-3">
             <div className="bg-blue-50 p-2 rounded-full text-blue-600">
               <FiTag size={18} />
@@ -645,7 +654,7 @@ const MultiCart = () => {
             <button
               key={amount}
               onClick={() => setTipAmount(amount === tipAmount ? 0 : amount)}
-              className={`flex-shrink-0 relative w-20 h-12 rounded-xl border flex items-center justify-center font-bold text-sm transition-all duration-200 ${
+              className={`flex-shrink-0 relative w-20 h-12 rounded-xl border flex items-center justify-center font-bold text-sm transition-all duration-200 cursor-pointer ${
                 tipAmount === amount
                   ? "bg-red-50 border-[#E23744] text-[#E23744]"
                   : "bg-white border-gray-200 text-gray-700 hover:border-gray-300"
@@ -664,17 +673,19 @@ const MultiCart = () => {
               ₹{amount}
             </button>
           ))}
-
-          <button className="flex-shrink-0 w-20 h-12 rounded-xl font-semibold border border-gray-200 text-gray-600 bg-white hover:border-gray-300 transition-colors flex items-center justify-center text-sm">
+          <button className="flex-shrink-0 w-20 h-12 rounded-xl font-semibold border border-gray-200 text-gray-600 bg-white hover:border-gray-300 transition-colors flex items-center justify-center text-sm cursor-pointer">
             Custom
           </button>
         </div>
 
         {/* BILL DETAILS */}
-        <div className="bg-white rounded-2xl p-4 shadow-sm" ref={billRef}>
+        <div
+          className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100"
+          ref={billRef}
+        >
           <button
             onClick={() => setShowBill(!showBill)}
-            className="w-full flex items-center justify-between text-left"
+            className="w-full flex items-center justify-between text-left cursor-pointer"
           >
             <span className="font-extrabold text-gray-800 text-sm">
               Bill Details
@@ -686,8 +697,6 @@ const MultiCart = () => {
                   ₹{grandTotal.toLocaleString("en-IN")}
                 </span>
               )}
-
-              {/* Toggle Arrows */}
               {showBill ? (
                 <IoIosArrowUp className="text-gray-500 text-lg" />
               ) : (
@@ -831,7 +840,7 @@ const MultiCart = () => {
                       setPaymentMethod(method);
                       setShowPaymentMenu(false);
                     }}
-                    className={`w-full flex items-center justify-between px-3 py-3 rounded-xl transition-colors ${
+                    className={`w-full flex items-center justify-between px-3 py-3 rounded-xl transition-colors cursor-pointer ${
                       paymentMethod === method
                         ? "bg-red-50/50 text-[#E23744]"
                         : "text-gray-700 hover:bg-gray-50"
@@ -855,15 +864,13 @@ const MultiCart = () => {
             disabled={!allShopsDeliverable}
             className={`flex-1 rounded-xl py-3.5 px-4 font-bold text-base flex items-center justify-between transition-transform shadow-lg ${
               allShopsDeliverable
-                ? "bg-green-600 text-white shadow-green-600/20 active:scale-[0.98]"
+                ? "bg-green-600 text-white shadow-green-600/20 active:scale-[0.98] cursor-pointer"
                 : "bg-gray-300 text-gray-500 cursor-not-allowed shadow-none"
             }`}
           >
             <div className="flex flex-col items-start leading-tight">
               <span className="text-base">
-                {allShopsDeliverable
-                  ? "Place Order"
-                  : "Not available for delivery"}
+                {allShopsDeliverable ? "Place Order" : "Too far to deliver"}
               </span>
             </div>
 

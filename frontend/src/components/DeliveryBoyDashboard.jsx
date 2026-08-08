@@ -12,6 +12,7 @@ import {
 } from "react-icons/fi";
 import DeliveryBoyTrackOrder from "./deliveryBoyTrackOrder";
 import { MdOutlineMarkEmailUnread } from "react-icons/md";
+import toast from "react-hot-toast";
 
 // Calculate Distance in KM
 const calculateDistance = (lat1, lon1, lat2, lon2) => {
@@ -40,7 +41,12 @@ const DeliveryBoyDashboard = () => {
   const [availableAssignments, setAvailableAssignments] = useState([]);
   const [loadingAssignments, setLoadingAssignments] = useState(true);
   const [acceptingId, setAcceptingId] = useState(null);
+
+  // OTP States
   const [showOtpBox, setShowOtpBox] = useState(false);
+  const [otp, setOtp] = useState("");
+  const [isSendingOtp, setIsSendingOtp] = useState(false);
+  const [isVerifyingOtp, setIsVerifyingOtp] = useState(false);
 
   useEffect(() => {
     let isMounted = true;
@@ -145,8 +151,79 @@ const DeliveryBoyDashboard = () => {
     getCurrentOrder();
   }, [getAssignments, getCurrentOrder]);
 
-  const handleSendOtp = (e) => {
-    setShowOtpBox(true);
+  const sendDeliveryOtp = async () => {
+    setIsSendingOtp(true);
+    try {
+      const result = await axios.post(
+        `${serverUrl}/api/order/send-delivery-otp`,
+        {
+          orderId: currentOrder.orderId,
+          shopOrderId: currentOrder.shopOrder._id,
+        },
+        { withCredentials: true },
+      );
+      console.log("OTP Sent:", result.data);
+      setShowOtpBox(true);
+    } catch (error) {
+      console.log("Failed to send OTP:", error);
+      // Optional: Add toast/alert here for failure
+    } finally {
+      setIsSendingOtp(false);
+    }
+  };
+
+  const sendDeliveryOtp = async () => {
+    setIsSendingOtp(true);
+    try {
+      const result = await axios.post(
+        `${serverUrl}/api/order/send-delivery-otp`,
+        {
+          orderId: currentOrder.orderId,
+          shopOrderId: currentOrder.shopOrder._id,
+        },
+        { withCredentials: true },
+      );
+      console.log("OTP Sent:", result.data);
+      setShowOtpBox(true);
+      toast.success("OTP sent to the customer");
+    } catch (error) {
+      console.log("Failed to send OTP:", error);
+      toast.error(error.response?.data?.message || "Failed to send OTP");
+    } finally {
+      setIsSendingOtp(false);
+    }
+  };
+
+  const sendVerifyOtp = async () => {
+    if (!otp.trim()) {
+      toast.error("Please enter the OTP");
+      return;
+    }
+    setIsVerifyingOtp(true);
+    try {
+      const result = await axios.post(
+        `${serverUrl}/api/order/send-verify-otp`,
+        {
+          orderId: currentOrder.orderId,
+          shopOrderId: currentOrder.shopOrder._id,
+          otp,
+        },
+        { withCredentials: true },
+      );
+
+      setShowOtpBox(false);
+      setOtp("");
+      await getCurrentOrder();
+
+      toast.success("OTP verified successfully!");
+    } catch (error) {
+      console.log("Failed to verify OTP:", error);
+      toast.error(
+        error.response?.data?.message || "Invalid OTP. Please try again.",
+      );
+    } finally {
+      setIsVerifyingOtp(false);
+    }
   };
 
   return (
@@ -400,29 +477,63 @@ const DeliveryBoyDashboard = () => {
             />
             {!showOtpBox ? (
               <button
-                className="w-full flex items-center justify-center gap-2 bg-gradient-to-br from-green-500 to-emerald-700 hover:from-green-600 hover:to-emerald-800 text-white font-semibold py-2 px-4 rounded-xl shadow-md active:scale-95 transition-all duration-200 focus:outline-none"
-                onClick={handleSendOtp}
+                className={`w-full flex items-center justify-center gap-2 bg-gradient-to-br from-green-500 to-emerald-700 hover:from-green-600 hover:to-emerald-800 text-white font-semibold py-3 px-4 rounded-xl shadow-md transition-all duration-200 focus:outline-none ${isSendingOtp ? "opacity-75 cursor-not-allowed" : "active:scale-95"}`}
+                onClick={sendDeliveryOtp}
+                disabled={isSendingOtp}
               >
-                <MdOutlineMarkEmailUnread size={20} />
-                Mark as delivered
+                {isSendingOtp ? (
+                  <>
+                    <FiLoader className="animate-spin" size={20} />
+                    Sending OTP...
+                  </>
+                ) : (
+                  <>
+                    <MdOutlineMarkEmailUnread size={20} />
+                    Mark as delivered
+                  </>
+                )}
               </button>
             ) : (
-              <div className="p-4 border rounded-xl bg-gray-50">
-                <p className="text-sm font-semibold mb-3">
+              <div className="p-5 border border-gray-200 rounded-2xl bg-white shadow-sm mt-2">
+                <p className="text-sm font-semibold text-gray-700 mb-4">
                   Enter OTP sent to{" "}
-                  <span className="text-indigo-500">
-                    {currentOrder.user.fullName}
+                  <span className="text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded ml-1">
+                    {currentOrder?.deliveryAddress?.receiverName || "Customer"}
                   </span>
                 </p>
+
                 <input
                   type="text"
                   autoFocus
-                  className="w-full border px-3 py-2 rounded-lg mb-3 focus:outline-none focus:ring-2 focus:ring-emerald-600"
+                  className="w-full border border-gray-200 px-4 py-3 rounded-xl mb-4 text-center tracking-[0.5em] font-bold text-lg text-gray-800 placeholder:tracking-normal placeholder:font-medium focus:outline-none focus:ring-2 focus:ring-emerald-500 transition-shadow"
                   placeholder="Enter OTP"
+                  onChange={(e) => setOtp(e.target.value)}
+                  value={otp}
+                  maxLength={6}
                 />
-                <button className="w-full bg-emerald-600 text-white py-2 rounded-lg font-semibold hover:bg-emerald-700 transition-all focus:outline-none">
-                  Submit OTP
-                </button>
+
+                <div className="flex gap-2">
+                  <button
+                    className="w-1/3 bg-gray-100 text-gray-600 py-3 rounded-xl font-bold hover:bg-gray-200 transition-all focus:outline-none active:scale-95"
+                    onClick={() => setShowOtpBox(false)}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    className={`w-2/3 flex items-center justify-center gap-2 bg-emerald-600 text-white py-3 rounded-xl font-bold hover:bg-emerald-700 transition-all focus:outline-none ${isVerifyingOtp ? "opacity-75 cursor-not-allowed" : "active:scale-95"}`}
+                    onClick={sendVerifyOtp}
+                    disabled={isVerifyingOtp || !otp}
+                  >
+                    {isVerifyingOtp ? (
+                      <>
+                        <FiLoader className="animate-spin" size={18} />
+                        Verifying...
+                      </>
+                    ) : (
+                      "Submit OTP"
+                    )}
+                  </button>
+                </div>
               </div>
             )}
           </>

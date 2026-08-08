@@ -378,6 +378,23 @@ const Cart = () => {
                         {selectedAddress.receiverName} •{" "}
                         {selectedAddress.mobileNumber}
                       </p>
+
+                      {shopDistance !== null && (
+                        <div className="mt-1.5">
+                          {deliveryAvailable ? (
+                            <p className="text-[11px] font-bold text-green-600 flex items-center gap-1">
+                              <span className="w-1.5 h-1.5 rounded-full bg-green-500"></span>
+                              Delivery available • {shopDistance.toFixed(1)} km
+                            </p>
+                          ) : (
+                            <p className="text-[11px] font-bold text-red-500 flex items-center gap-1">
+                              <span className="w-1.5 h-1.5 rounded-full bg-red-500"></span>
+                              Not deliverable • {shopDistance.toFixed(1)} km
+                              away
+                            </p>
+                          )}
+                        </div>
+                      )}
                     </>
                   ) : (
                     <p className="text-gray-500 text-sm mt-1">
@@ -548,21 +565,6 @@ const Cart = () => {
                       </p>
                     </div>
                   </div>
-                  {shopDistance !== null && (
-                    <div className="mt-1.5">
-                      {deliveryAvailable ? (
-                        <p className="text-[11px] font-bold text-green-600 flex items-center gap-1">
-                          <span className="w-1.5 h-1.5 rounded-full bg-green-500"></span>
-                          Delivery available • {shopDistance.toFixed(1)} km
-                        </p>
-                      ) : (
-                        <p className="text-[11px] font-bold text-red-500 flex items-center gap-1">
-                          <span className="w-1.5 h-1.5 rounded-full bg-red-500"></span>
-                          Not deliverable • {shopDistance.toFixed(1)} km away
-                        </p>
-                      )}
-                    </div>
-                  )}
                   <div className="border-b border-gray-100 border-dashed mt-2"></div>
                 </motion.div>
               ))}

@@ -59,11 +59,23 @@ const shopOrderSchema = new mongoose.Schema(
         assignment: {
             type: mongoose.Schema.Types.ObjectId,
             ref: "DeliverAssignment",
-            default:null
+            default: null
         },
-        assignDeliveryBoy:{
+        assignDeliveryBoy: {
             type: mongoose.Schema.Types.ObjectId,
             ref: "User",
+        },
+        deliveryOtp: {
+            type: String,
+            default:null
+        },
+        otpExpires: {
+            type: Date,
+            default:null
+        },
+        deliveredAt:{
+            type:Date,
+            default:null
         }
     },
     { timestamps: true }

@@ -23,6 +23,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import Boy from "../assets/scooter.png";
 import Home from "../assets/Home.png";
 import Routing from "./routing";
+import OrderDeliveredPopup from "./OrderDeliveredPopup";
 
 const deliveryIcon = new L.Icon({
   iconUrl: Boy,
@@ -86,7 +87,6 @@ const TrackOrderPage = () => {
 
   const [showBill, setShowBill] = useState(false);
   const billRef = useRef(null);
-
   const handleGetTrackOrder = async () => {
     try {
       setLoading(true);
@@ -95,8 +95,6 @@ const TrackOrderPage = () => {
         { withCredentials: true },
       );
       setOrder(data.order);
-      console.log("📦 FULL ORDER:", data.order);
-console.log("📍 DELIVERY ADDRESS:", data.order?.deliveryAddress);
     } catch (error) {
       console.error("Error fetching order tracking details:", error);
     } finally {
@@ -132,6 +130,9 @@ console.log("📍 DELIVERY ADDRESS:", data.order?.deliveryAddress);
   const tipAmount = shopOrder?.tip || 0;
   const couponDiscount = shopOrder?.discount || 0;
   const grandTotal = order?.totalAmount || shopOrder?.total || 0;
+
+  const [showDeliveredPopup, setShowDeliveredPopup] = useState(false);
+  const [hasPopupShown, setHasPopupShown] = useState(false);
 
   const shopLat = Number(
     shop?.location?.coordinates?.[1] ||
@@ -281,7 +282,16 @@ console.log("📍 DELIVERY ADDRESS:", data.order?.deliveryAddress);
   const formatTime = (date) => {
     return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
   };
+  useEffect(() => {
+    if (currentStatus === "delivered" && !hasPopupShown) {
+      const timer = setTimeout(() => {
+        setShowDeliveredPopup(true);
+        setHasPopupShown(true);
+      }, 1500);
 
+      return () => clearTimeout(timer);
+    }
+  }, [currentStatus, hasPopupShown]);
   const formatTimeWithSeconds = (date) => {
     return date.toLocaleTimeString([], {
       hour: "2-digit",
@@ -863,7 +873,12 @@ console.log("📍 DELIVERY ADDRESS:", data.order?.deliveryAddress);
           </div>
         </div>
       </div>
-
+      <OrderDeliveredPopup
+        isOpen={showDeliveredPopup}
+        onClose={() => setShowDeliveredPopup(false)}
+        deliveryBoy={deliveryBoy}
+        shopName={shop?.name}
+      />
       <style
         dangerouslySetInnerHTML={{
           __html: `
