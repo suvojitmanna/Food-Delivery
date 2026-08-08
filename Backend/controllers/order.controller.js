@@ -591,6 +591,11 @@ export const getOrderById = async (req, res) => {
                 model: "User",
             })
             .populate({
+                path: "shopOrders.owner",
+                model: "User",
+                select: "fullName email mobile profilePic",
+            })
+            .populate({
                 path: "shopOrders.items",
                 model: "Item",
             });

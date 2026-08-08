@@ -48,8 +48,8 @@ const AddItem = () => {
   const [name, setName] = useState("");
   const [price, setPrice] = useState("");
   const [originalPrice, setOriginalPrice] = useState("");
-  const [gst, setGst] = useState(""); // <-- NEW: GST State
-  const [hasPackingFee, setHasPackingFee] = useState(false); // <-- NEW: Packing Fee State
+  const [gst, setGst] = useState("");
+  const [hasPackingFee, setHasPackingFee] = useState(false);
   const [category, setCategory] = useState(CATEGORIES[0]);
   const [type, setType] = useState("Veg");
   const [preparationTime, setPreparationTime] = useState(15);

@@ -457,7 +457,7 @@ const MenuCard = () => {
                     key={item._id}
                     className="flex items-start justify-between gap-4 py-6 border-b border-gray-100 bg-white"
                   >
-                    {/* LEFT SIDE: Veg/Non-Veg Icon, Name, Price & Desc */}
+                    {/* LEFT SIDE*/}
                     <div className="flex-1 pr-2">
                       {item.type?.toLowerCase() && (
                         <div className="mb-2">
@@ -485,7 +485,7 @@ const MenuCard = () => {
                       )}
                     </div>
 
-                    {/* RIGHT SIDE: Image & Floating Add Button */}
+                    {/* RIGHT SIDE*/}
                     <div className="relative min-w-[130px] shrink-0 mt-1">
                       <div className="relative rounded-2xl overflow-hidden bg-gray-50 border border-gray-100">
                         {item.image ? (
@@ -594,7 +594,7 @@ const MenuCard = () => {
                     onClick={() => {
                       setActiveCategory(cat);
                       setIsMenuOpen(false);
-                      window.scrollTo({ top: 300, behavior: "smooth" }); // Scroll to menu section
+                      window.scrollTo({ top: 300, behavior: "smooth" }); 
                     }}
                     className={`w-full flex items-center justify-between py-4 border-b border-gray-100 text-left ${activeCategory === cat ? "text-[#E23744] font-bold" : "text-gray-700 font-medium"}`}
                   >

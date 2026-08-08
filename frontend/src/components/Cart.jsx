@@ -21,6 +21,7 @@ import { addMyOrder } from "../redux/userSlice";
 import { IoIosArrowUp, IoIosArrowDown } from "react-icons/io";
 import { FaStar } from "react-icons/fa";
 import { calculateShopsDeliveryMetrics } from "../../utils/location";
+import { TbEdit } from "react-icons/tb";
 
 const VegIcon = () => (
   <div className="w-3.5 h-3.5 border border-[#24963F] flex items-center justify-center rounded-[2px] shrink-0 mt-0.5">
@@ -314,7 +315,7 @@ const Cart = () => {
               </div>
               <button
                 onClick={() => setShowAddressList(true)}
-                className="text-[#E23744] font-bold text-sm bg-red-50 px-3 py-1.5 rounded-lg active:scale-95 transition-transform"
+                className="text-[#E23744] font-bold text-sm bg-red-50 px-3 py-1.5 rounded-lg active:scale-95 transition-transform cursor-pointer"
               >
                 Change
               </button>
@@ -327,7 +328,7 @@ const Cart = () => {
                 </h3>
                 <button
                   onClick={() => setShowAddressList(false)}
-                  className="text-gray-400 p-1 hover:bg-gray-100 rounded-full"
+                  className="text-gray-400 p-1 hover:bg-gray-100 rounded-full cursor-pointer"
                 >
                   <FiArrowLeft size={20} className="rotate-180" />
                 </button>
@@ -366,15 +367,25 @@ const Cart = () => {
                         </p>
                       </div>
                     </div>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        navigate(`/DeliveryAddressPage?edit=${address._id}`);
+                      }}
+                      className="shrink-0 ml-2 px-3 py-1.5 text-xs font-bold text-[#E23744] bg-red-50 rounded-lg hover:bg-red-100 active:scale-95 transition-all cursor-pointer"
+                    >
+                      <TbEdit size={20} />
+                    </button>
                   </div>
                 ))}
               </div>
 
               <button
                 onClick={() => navigate("/DeliveryAddressPage")}
-                className="w-full py-3.5 mt-2 border border-gray-200 text-[#E23744] bg-white rounded-xl font-bold text-sm hover:bg-gray-50 transition-colors flex items-center justify-center gap-2 shadow-sm"
+                className="w-full py-3 mt-2 border-2 border-dotted border-orange-300 text-orange-600 bg-orange-50/30 rounded-xl font-bold text-sm hover:bg-orange-50 transition-colors"
               >
-                <FiPlus /> Add new address
+                + Add New Address
               </button>
             </div>
           )}

@@ -54,7 +54,6 @@ const itemSchema = new mongoose.Schema(
         "South Indian",
         "Fast Food",
         "Snacks",
-        // --- Newly Added Delicious Options ---
         "Pasta",
         "Noodles",
         "Rolls & Wraps",

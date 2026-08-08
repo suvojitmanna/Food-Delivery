@@ -78,7 +78,7 @@ const TrackOrderPage = () => {
 
   const [order, setOrder] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [progressWidth, setProgressWidth] = useState(0);
+
   const [routeInfo, setRouteInfo] = useState({
     distance: 0,
     duration: 0,
@@ -177,6 +177,7 @@ const TrackOrderPage = () => {
 
   const startPosition = [startLat, startLon];
   const customerPosition = [customerLat, customerLon];
+  const [currentTime, setCurrentTime] = useState(new Date());
 
   const estimatedTime = useMemo(() => {
     const minsPerKm = 3;
@@ -193,7 +194,6 @@ const TrackOrderPage = () => {
     return "--";
   }, [startLat, startLon, customerLat, customerLon]);
 
-  // Order Status Timeline Steps
   const timeline = useMemo(() => {
     const steps = [
       { id: "pending", label: "Order Placed" },
@@ -211,56 +211,86 @@ const TrackOrderPage = () => {
     );
     if (currentIndex === -1) currentIndex = 0;
 
-    return steps.map((step, index) => ({
-      ...step,
-      completed: index < currentIndex,
-      active: index === currentIndex,
-    }));
-  }, [currentStatus]);
+    return steps.map((step, index) => {
+      let stepTime = null;
+      if (index === 0 && order?.createdAt) {
+        stepTime = new Date(order.createdAt);
+      } else if (index === currentIndex && shopOrder?.updatedAt) {
+        stepTime = new Date(shopOrder.updatedAt);
+      }
 
-  // Animated Progress Bar
+      return {
+        ...step,
+        completed: index < currentIndex,
+        active: index === currentIndex,
+        time: stepTime,
+      };
+    });
+  }, [currentStatus, order?.createdAt, shopOrder?.updatedAt]);
+
+  const getProgressDetails = (status) => {
+    const stat = status?.toLowerCase() || "processing";
+
+    if (stat.includes("place") || stat === "pending") {
+      return { width: 15, label: "Order Placed" };
+    }
+    if (stat.includes("accept")) {
+      return { width: 45, label: "Order Accepted" };
+    }
+    if (stat.includes("prepar")) {
+      return { width: 45, label: "Order preparing" };
+    }
+    if (stat.includes("out") || stat.includes("pick") || stat.includes("way")) {
+      return { width: 75, label: "Out for Delivery" };
+    }
+    if (stat.includes("deliver") || stat.includes("complet")) {
+      return { width: 100, label: "Delivered", isComplete: true };
+    }
+    if (stat.includes("cancel")) {
+      return { width: 100, label: "Cancelled", isCancelled: true };
+    }
+
+    return { width: 25, label: "Processing" };
+  };
+
+  const {
+    width: progressWidth,
+    label: statusLabel,
+    isComplete,
+    isCancelled,
+  } = getProgressDetails(shopOrder?.status);
+
+  // Time Updates
   useEffect(() => {
-    const updateProgress = () => {
-      if (!shopOrder) return;
+    const timer = setInterval(() => setCurrentTime(new Date()), 1000);
+    return () => clearInterval(timer);
+  }, []);
 
-      if (currentStatus === "delivered") {
-        setProgressWidth(100);
-        return;
-      }
+  const durationInMinutes =
+    routeInfo?.duration > 0
+      ? Math.ceil(routeInfo.duration)
+      : estimatedTime || 0;
 
-      const activeIndex = timeline.findIndex((t) => t.active);
-      const minProgress = (activeIndex / timeline.length) * 100;
-      const maxProgress = ((activeIndex + 1) / timeline.length) * 100;
+  const expectedDeliveryTime = new Date(
+    currentTime.getTime() +
+      (durationInMinutes === "--" ? 0 : durationInMinutes) * 60000,
+  );
 
-      if (!shopOrder.createdAt || estimatedTime === "--") {
-        setProgressWidth(maxProgress);
-        return;
-      }
+  const formatTime = (date) => {
+    return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  };
 
-      const createdTime = new Date(shopOrder.createdAt).getTime();
-      const now = Date.now();
-      const elapsedMs = Math.max(0, now - createdTime);
-      const remainingMs = estimatedTime * 60 * 1000;
-      const totalMs = elapsedMs + remainingMs;
-
-      let calculatedProgress = (elapsedMs / totalMs) * 100;
-
-      if (calculatedProgress < minProgress)
-        calculatedProgress = minProgress + 2;
-      if (calculatedProgress > maxProgress)
-        calculatedProgress = maxProgress - 2;
-
-      setProgressWidth(calculatedProgress);
-    };
-
-    updateProgress();
-    const interval = setInterval(updateProgress, 10000);
-    return () => clearInterval(interval);
-  }, [shopOrder, timeline, estimatedTime, currentStatus]);
+  const formatTimeWithSeconds = (date) => {
+    return date.toLocaleTimeString([], {
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+    });
+  };
 
   if (loading) {
     return (
-      <div className="min-h-[100dvh] w-full flex items-center justify-center font-medium text-slate-500 bg-slate-50">
+      <div className="min-h-screen w-full flex items-center justify-center font-medium text-slate-500 bg-slate-50">
         Loading live tracking details...
       </div>
     );
@@ -268,14 +298,14 @@ const TrackOrderPage = () => {
 
   if (!order) {
     return (
-      <div className="min-h-[100dvh] w-full flex items-center justify-center text-red-500 font-medium bg-slate-50">
+      <div className="min-h-screen w-full flex items-center justify-center text-red-500 font-medium bg-slate-50">
         Order tracking information unavailable.
       </div>
     );
   }
 
   return (
-    <div className="min-h-[100dvh] w-full bg-slate-50 font-sans pb-8 overflow-x-hidden flex flex-col">
+    <div className="min-h-screen w-full bg-slate-50 font-sans pb-8 overflow-x-hidden flex flex-col">
       {/* Top Navigation Bar with Header Status */}
       <div className="sticky top-0 z-50 w-full bg-white/90 backdrop-blur-md border-b border-slate-200 px-4 py-3 sm:py-4 flex items-center justify-between shadow-sm">
         <div className="flex items-center gap-3 overflow-hidden">
@@ -307,7 +337,7 @@ const TrackOrderPage = () => {
 
       {/* Main Content Area */}
       <div className="w-full max-w-xl mx-auto px-3 sm:px-4 pt-4 pb-6 flex flex-col gap-4 sm:gap-5 flex-1">
-
+        {/* PROGRESS HEADER CARD */}
         <div className="w-full bg-gradient-to-br from-orange-500 to-rose-600 rounded-[1.5rem] sm:rounded-[2rem] p-5 sm:p-6 text-white shadow-xl shadow-orange-200/50 relative overflow-hidden shrink-0">
           <div className="absolute top-0 right-0 w-32 h-32 sm:w-40 sm:h-40 bg-white/10 rounded-full blur-3xl -mr-10 -mt-10 pointer-events-none"></div>
 
@@ -317,7 +347,7 @@ const TrackOrderPage = () => {
                 <div className="flex items-center gap-2 mb-1">
                   <p className="text-orange-100 text-[13px] sm:text-sm font-bold uppercase tracking-wider flex items-center gap-1.5">
                     <FiCheckCircle size={15} className="text-orange-200" />
-                    {shopOrder?.status || "Processing"}
+                    {statusLabel}
                   </p>
                   {shopOrder?.updatedAt && (
                     <span className="text-orange-200 text-[10px] sm:text-[11px] font-semibold bg-white/10 px-2 py-0.5 rounded-full border border-white/10">
@@ -352,30 +382,100 @@ const TrackOrderPage = () => {
                       ETA
                     </p>
                     <p className="text-base sm:text-lg font-bold">
-                      {routeInfo.duration > 0
-                        ? `${Math.ceil(routeInfo.duration)} min`
-                        : `${estimatedTime} min`}
+                      {durationInMinutes} min
                     </p>
                   </div>
                 </div>
               </div>
-              <div className="w-12 h-12 sm:w-14 sm:h-14 bg-white/20 backdrop-blur-md rounded-2xl flex items-center justify-center shadow-inner border border-white/10 shrink-0">
-                <FaMotorcycle size={24} className="text-white sm:text-[28px]" />
+
+              <div className="flex flex-col items-end gap-2 shrink-0">
+                <p className="flex items-center gap-1 text-[10px] sm:text-[11px] text-orange-200 font-medium mr-1 font-mono">
+                  <FiClock size={12} />
+                  Current Time: {formatTimeWithSeconds(currentTime)}
+                </p>
+                <div className="bg-white/20 backdrop-blur-md rounded-2xl px-4 py-3 flex flex-col items-center justify-center shadow-inner border border-white/10 min-w-[100px] sm:min-w-[110px]">
+                  <FaMotorcycle size={22} className="text-white mb-2" />
+                  <p className="text-[9px] sm:text-[10px] text-orange-100 uppercase tracking-widest mb-0.5">
+                    Expected By
+                  </p>
+                  <p className="text-sm sm:text-base font-bold text-white tracking-wide">
+                    {durationInMinutes === "--"
+                      ? "--:--"
+                      : formatTime(expectedDeliveryTime)}
+                  </p>
+                </div>
               </div>
             </div>
 
             {/* Progress Bar */}
-            <div className="w-full h-2 sm:h-2.5 bg-black/20 rounded-full overflow-hidden backdrop-blur-sm">
-              <div
-                className="h-full bg-white rounded-full relative overflow-hidden transition-all duration-1000 ease-out"
-                style={{ width: `${progressWidth}%` }}
-              >
-                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/50 to-transparent w-full animate-[shimmer_2s_infinite]"></div>
+            <div className="w-full mt-6 pt-4 border-t border-white/20">
+              <div className="relative w-full flex justify-between">
+                <div className="absolute top-1.5 left-0 w-full h-1 bg-black/20 rounded-full -z-0"></div>
+
+                <div
+                  className="absolute top-1.5 left-0 h-1 bg-white rounded-full -z-0 transition-all duration-700 ease-out"
+                  style={{
+                    width: `${
+                      timeline.findIndex((s) => s.active) > 0
+                        ? (timeline.findIndex((s) => s.active) /
+                            (timeline.length - 1)) *
+                          100
+                        : isComplete
+                          ? 100
+                          : 0
+                    }%`,
+                  }}
+                ></div>
+
+                {/* Status Nodes */}
+                {timeline.map((step, idx) => (
+                  <div
+                    key={step.id}
+                    className="flex flex-col items-center relative z-10 w-12 sm:w-16"
+                  >
+                    <div
+                      className={`w-4 h-4 rounded-full flex items-center justify-center transition-colors duration-500 shadow-sm ${
+                        step.completed || step.active || isComplete
+                          ? "bg-white"
+                          : "bg-orange-400/50 border-2 border-white/40"
+                      }`}
+                    >
+                      {(step.completed || isComplete) && (
+                        <FiCheckCircle size={10} className="text-orange-500" />
+                      )}
+                      {step.active && !isComplete && (
+                        <div className="w-2 h-2 rounded-full bg-orange-500 animate-pulse"></div>
+                      )}
+                    </div>
+
+                    {/* Label */}
+                    <span
+                      className={`text-[8px] sm:text-[9px] text-center mt-1.5 font-bold uppercase tracking-wider ${
+                        step.completed || step.active || isComplete
+                          ? "text-white"
+                          : "text-white/60"
+                      }`}
+                    >
+                      {step.label}
+                    </span>
+
+                    {/* Timestamp */}
+                    <span className="text-[8px] font-mono text-orange-200 mt-0.5 h-3">
+                      {step.time
+                        ? step.time.toLocaleTimeString([], {
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          })
+                        : ""}
+                    </span>
+                  </div>
+                ))}
               </div>
             </div>
           </div>
         </div>
 
+        {/* MAP SECTION */}
         <div className="w-full h-[35vh] min-h-[250px] sm:h-[400px] bg-slate-200 relative rounded-2xl sm:rounded-3xl overflow-hidden shadow-sm border border-slate-200 shrink-0 z-0">
           <MapContainer
             center={startLat !== 0 ? startPosition : [22.5726, 88.3639]}
@@ -425,7 +525,7 @@ const TrackOrderPage = () => {
           </MapContainer>
         </div>
 
-        {/* Details Section */}
+        {/* DETAILS SECTION */}
         <div className="w-full space-y-4 relative z-10 flex-1">
           {isAssigningPartner ? (
             <div className="bg-white rounded-2xl p-5 shadow-sm border border-orange-100 flex flex-col items-center justify-center text-center relative overflow-hidden">
@@ -488,70 +588,8 @@ const TrackOrderPage = () => {
               )}
             </div>
           ) : null}
-          <div className="bg-white rounded-2xl p-4 sm:p-5 shadow-sm border border-slate-100">
-            <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-5 flex items-center justify-between">
-              <span className="flex items-center gap-2">
-                <FiClock /> Order Status Timeline
-              </span>
-            </h4>
 
-            <div className="relative pl-3 space-y-6">
-              <div className="absolute left-[17px] top-2 bottom-2 w-[2px] bg-slate-100"></div>
-
-              {timeline.map((step, index) => (
-                <div
-                  key={index}
-                  className="relative flex items-center gap-3 sm:gap-4 group"
-                >
-                  <div
-                    className={`w-3 h-3 rounded-full relative z-10 ring-4 ring-white ${
-                      step.active
-                        ? "bg-orange-600 ring-orange-50 shadow-[0_0_0_4px_rgba(249,115,22,0.1)]"
-                        : step.completed
-                          ? "bg-emerald-500"
-                          : "bg-slate-200"
-                    }`}
-                  >
-                    {step.active && (
-                      <div className="absolute inset-0 bg-orange-600 rounded-full animate-ping opacity-75"></div>
-                    )}
-                  </div>
-
-                  <div className="flex-1 flex justify-between items-center min-w-0">
-                    <span
-                      className={`font-semibold text-sm sm:text-base truncate pr-2 ${
-                        step.active
-                          ? "text-orange-600"
-                          : step.completed
-                            ? "text-slate-700"
-                            : "text-slate-400"
-                      }`}
-                    >
-                      {step.label}
-                    </span>
-                    {index === 0 && shopOrder?.createdAt && (
-                      <span className="text-[10px] sm:text-[11px] font-bold text-slate-400 shrink-0">
-                        {new Date(shopOrder.createdAt).toLocaleTimeString([], {
-                          hour: "2-digit",
-                          minute: "2-digit",
-                        })}
-                      </span>
-                    )}
-                    {step.active && index !== 0 && shopOrder?.updatedAt && (
-                      <span className="text-[10px] sm:text-[11px] font-bold text-orange-600 shrink-0 bg-orange-50 px-2.5 py-1 rounded-md border border-orange-100">
-                        {new Date(shopOrder.updatedAt).toLocaleTimeString([], {
-                          hour: "2-digit",
-                          minute: "2-digit",
-                        })}
-                      </span>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Delivery / Customer Details Fallback */}
+          {/* Delivery Customer Details */}
           {isAddressObject ? (
             <div className="bg-white rounded-2xl p-4 sm:p-5 shadow-sm border border-slate-100 flex items-start gap-3 sm:gap-4">
               <div className="w-10 h-10 bg-rose-50 text-rose-500 rounded-xl flex items-center justify-center shrink-0">
@@ -600,6 +638,9 @@ const TrackOrderPage = () => {
                 <p className="text-xs sm:text-sm font-medium text-slate-500 leading-snug break-words">
                   {order.user.email}
                 </p>
+                <p className="text-xs sm:text-sm font-medium text-slate-500 leading-snug ">
+                  {deliveryAddress?.flatNo}
+                </p>
               </div>
             </div>
           ) : null}
@@ -626,10 +667,21 @@ const TrackOrderPage = () => {
                 <h3 className="font-bold text-slate-900 text-base sm:text-lg capitalize truncate">
                   {shop?.name || "Store"}
                 </h3>
+
                 <p className="text-[10px] sm:text-xs font-mono text-slate-500 mt-0.5 uppercase tracking-wider">
                   Order #{orderId?.slice(-8)}
                 </p>
               </div>
+
+              {shopOrder?.owner?.mobile && (
+                <a
+                  href={`tel:${shopOrder.owner.mobile}`}
+                  aria-label="Call shop owner"
+                  className="w-10 h-10 shrink-0 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center hover:bg-emerald-100 transition-colors"
+                >
+                  <FiPhone size={18} />
+                </a>
+              )}
             </div>
 
             {/* Items List */}
