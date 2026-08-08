@@ -76,7 +76,6 @@ const UserDashboard = () => {
 
   useEffect(() => {
     const handleLocationChanged = (event) => {
-      console.log("📍 Navbar location changed:", event.detail);
       setSelectedLocation(event.detail);
     };
 
@@ -132,21 +131,20 @@ const UserDashboard = () => {
 
   // SORT OPTIONS
   const sortOptions = ["Top Rated", "Fast Delivery", "Newest", "A-Z", "Rating"];
-  const allCategories = [
-    "All",
-    ...new Set(
-      (shops || []).flatMap(
-        (shop) => shop.categories || ["Chinese", "Biryani", "Pizza", "Burgers"],
-      ),
-    ),
-  ];
 
-  let filteredShops =
-    selectedCategory === "All"
-      ? [...(shops || [])]
-      : shops.filter((shop) =>
-          (shop.categories || []).includes(selectedCategory),
-        );
+  const filteredShops = useMemo(() => {
+    if (selectedCategory === "All") {
+      return [...(shops || [])];
+    }
+
+    return (shops || []).filter((shop) =>
+      (shop.items || []).some(
+        (item) =>
+          item.category?.trim().toLowerCase() ===
+          selectedCategory.trim().toLowerCase(),
+      ),
+    );
+  }, [shops, selectedCategory]);
 
   switch (selectedSort) {
     case "Top Rated":
@@ -482,18 +480,23 @@ const UserDashboard = () => {
               ref={scrollContainerRef}
               className="w-full flex items-center overflow-x-auto gap-6 pb-4 pt-2 scroll-smooth -mx-4 px-4 sm:mx-0 sm:px-0 scrollbar-none"
             >
-              {categoryLoading
-                ? [...Array(8)].map((_, index) => (
+              {category.length > 0
+                ? category.map((cate) => (
+                    <button
+                      key={cate.category}
+                      type="button"
+                      onClick={() => setSelectedCategory(cate.category)}
+                      className="flex-shrink-0 cursor-pointer"
+                    >
+                      <CategoryCard data={cate} />
+                    </button>
+                  ))
+                : [...Array(8)].map((_, index) => (
                     <div
                       key={index}
                       className="flex-shrink-0 w-[130px] h-[130px] sm:w-[160px] sm:h-[160px] md:w-[170px] md:h-[170px] rounded-[26px] overflow-hidden bg-white border border-orange-100 animate-pulse"
                     >
-                      <div className="w-full h-full bg-gradient-to-r from-stone-200 via-stone-100 to-stone-200 bg-[length:200%_100%] animate-[shimmer_2s_infinite]" />
-                    </div>
-                  ))
-                : category.map((cate, index) => (
-                    <div key={index}>
-                      <CategoryCard data={cate} />
+                      <div className="w-full h-full bg-gradient-to-r from-stone-200 via-stone-100 to-stone-200" />
                     </div>
                   ))}
             </div>
@@ -638,7 +641,7 @@ const UserDashboard = () => {
             <RestaurantCategorySection
               key={sectionIndex}
               categorySection={categorySection}
-              shops={shops}
+              shops={filteredShops}
               municipality={city}
               navigate={navigate}
             />

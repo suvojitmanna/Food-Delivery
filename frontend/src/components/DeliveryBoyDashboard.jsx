@@ -164,27 +164,6 @@ const DeliveryBoyDashboard = () => {
       );
       console.log("OTP Sent:", result.data);
       setShowOtpBox(true);
-    } catch (error) {
-      console.log("Failed to send OTP:", error);
-      // Optional: Add toast/alert here for failure
-    } finally {
-      setIsSendingOtp(false);
-    }
-  };
-
-  const sendDeliveryOtp = async () => {
-    setIsSendingOtp(true);
-    try {
-      const result = await axios.post(
-        `${serverUrl}/api/order/send-delivery-otp`,
-        {
-          orderId: currentOrder.orderId,
-          shopOrderId: currentOrder.shopOrder._id,
-        },
-        { withCredentials: true },
-      );
-      console.log("OTP Sent:", result.data);
-      setShowOtpBox(true);
       toast.success("OTP sent to the customer");
     } catch (error) {
       console.log("Failed to send OTP:", error);
