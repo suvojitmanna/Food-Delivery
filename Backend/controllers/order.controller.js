@@ -580,8 +580,10 @@ export const getCurrentOrder = async (req, res) => {
 export const getOrderById = async (req, res) => {
     try {
         const { orderId } = req.params;
+
         const order = await Order.findById(orderId)
             .populate("user")
+            .populate("deliveryAddress")
             .populate({
                 path: "shopOrders.shop",
                 model: "Shop",
@@ -606,11 +608,18 @@ export const getOrderById = async (req, res) => {
                 message: "Order not found",
             });
         }
+
         return res.status(200).json({
             success: true,
             order,
         });
+
     } catch (error) {
+        console.error(
+            "Get Order By Id Error:",
+            error
+        );
+
         return res.status(500).json({
             success: false,
             message: `Get Order By Id Error: ${error.message}`,

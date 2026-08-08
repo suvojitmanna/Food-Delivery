@@ -59,12 +59,17 @@ const calculateDistance = (lat1, lon1, lat2, lon2) => {
 
 const DeliveryBoyTrackOrder = ({ currentOrder }) => {
   const [progressWidth, setProgressWidth] = useState(0);
-
+  const [currentTime, setCurrentTime] = useState(new Date());
   const [routeInfo, setRouteInfo] = useState({
     distance: 0,
     duration: 0,
   });
 
+  // Time Updates
+  useEffect(() => {
+    const timer = setInterval(() => setCurrentTime(new Date()), 1000);
+    return () => clearInterval(timer);
+  }, []);
   if (!currentOrder) {
     return (
       <div className="min-h-[100dvh] w-full flex items-center justify-center font-medium text-slate-500 bg-slate-50">
@@ -77,8 +82,7 @@ const DeliveryBoyTrackOrder = ({ currentOrder }) => {
   const deliveryBoyLon = Number(currentOrder.deliveryBoyLocation?.lon);
   const customerLat = Number(currentOrder.customerLocation?.lat);
   const customerLon = Number(currentOrder.customerLocation?.lon);
-console.log(customerLat)
-console.log(customerLon)
+
   if (
     isNaN(deliveryBoyLat) ||
     isNaN(deliveryBoyLon) ||
@@ -92,10 +96,42 @@ console.log(customerLon)
     );
   }
 
-  const { shop, shopOrder, deliveryAddress, deliveryBoy, orderId } = currentOrder;
+  const { shop, shopOrder, deliveryAddress, deliveryBoy, orderId } =
+    currentOrder;
   const boyPosition = [deliveryBoyLat, deliveryBoyLon];
   const customerPosition = [customerLat, customerLon];
-  
+
+  const getProgressDetails = (status) => {
+    const stat = status?.toLowerCase() || "processing";
+
+    if (stat.includes("place") || stat === "pending") {
+      return { width: 15, label: "Order Placed" };
+    }
+    if (stat.includes("accept")) {
+      return { width: 45, label: "Order Accepted" };
+    }
+    if (stat.includes("prepar")) {
+      return { width: 45, label: "Order preparing" };
+    }
+    if (stat.includes("out") || stat.includes("pick") || stat.includes("way")) {
+      return { width: 75, label: "Out for Delivery" };
+    }
+    if (stat.includes("deliver") || stat.includes("complet")) {
+      return { width: 100, label: "Delivered", isComplete: true };
+    }
+    if (stat.includes("cancel")) {
+      return { width: 100, label: "Cancelled", isCancelled: true };
+    }
+
+    return { width: 25, label: "Processing" };
+  };
+
+  const {
+    label: statusLabel,
+    isComplete,
+    isCancelled,
+  } = getProgressDetails(shopOrder?.status);
+
   const estimatedTime = useMemo(() => {
     const minsPerKm = 3;
     const distanceKm = calculateDistance(
@@ -110,6 +146,28 @@ console.log(customerLon)
     }
     return "--";
   }, [deliveryBoyLat, deliveryBoyLon, customerLat, customerLon]);
+
+  const durationInMinutes =
+    routeInfo?.duration > 0
+      ? Math.ceil(routeInfo.duration)
+      : estimatedTime || 0;
+
+  const expectedDeliveryTime = new Date(
+    currentTime.getTime() +
+      (durationInMinutes === "--" ? 0 : durationInMinutes) * 60000,
+  );
+
+  const formatTime = (date) => {
+    return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  };
+
+  const formatTimeWithSeconds = (date) => {
+    return date.toLocaleTimeString([], {
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+    });
+  };
 
   const timeline = useMemo(() => {
     const currentStatus = (shopOrder?.status || "pending").toLowerCase();
@@ -162,8 +220,10 @@ console.log(customerLon)
 
       let calculatedProgress = (elapsedMs / totalMs) * 100;
 
-      if (calculatedProgress < minProgress) calculatedProgress = minProgress + 2;
-      if (calculatedProgress > maxProgress) calculatedProgress = maxProgress - 2;
+      if (calculatedProgress < minProgress)
+        calculatedProgress = minProgress + 2;
+      if (calculatedProgress > maxProgress)
+        calculatedProgress = maxProgress - 2;
 
       setProgressWidth(calculatedProgress);
     };
@@ -190,7 +250,6 @@ console.log(customerLon)
 
       {/* Main Content Area */}
       <div className="w-full max-w-xl mx-auto px-3 sm:px-4 pt-4 pb-6 flex flex-col gap-4 sm:gap-5 flex-1">
-        
         {/* Custom Progress Bar */}
         <div className="w-full bg-gradient-to-br from-green-600 to-emerald-700 rounded-[1.5rem] sm:rounded-[2rem] p-5 sm:p-6 text-white shadow-xl shadow-indigo-200/50 relative overflow-hidden shrink-0">
           <div className="absolute top-0 right-0 w-32 h-32 sm:w-40 sm:h-40 bg-white/10 rounded-full blur-3xl -mr-10 -mt-10 pointer-events-none"></div>
@@ -198,31 +257,66 @@ console.log(customerLon)
           <div className="relative z-10">
             <div className="flex justify-between items-start mb-6">
               <div>
-                <p className="text-indigo-100 text-[13px] sm:text-sm font-medium uppercase tracking-wider mb-1 flex items-center gap-1.5">
-                  <FiCheckCircle size={14} className="text-indigo-300" />
-                  {shopOrder?.status || "Processing"}
-                </p>
+                <div className="flex items-center gap-2 mb-1">
+                  <p className="text-orange-100 text-[13px] sm:text-sm font-bold uppercase tracking-wider flex items-center gap-1.5">
+                    <FiCheckCircle size={15} className="text-orange-200" />
+                    {statusLabel}
+                  </p>
+                  {shopOrder?.updatedAt && (
+                    <span className="text-orange-200 text-[10px] sm:text-[11px] font-semibold bg-white/10 px-2 py-0.5 rounded-full border border-white/10">
+                      {new Date(shopOrder.updatedAt).toLocaleTimeString([], {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })}
+                    </span>
+                  )}
+                </div>
+
                 <div className="flex items-center gap-6 sm:gap-8 mt-4">
                   <div>
-                    <p className="text-[11px] sm:text-xs text-indigo-200 uppercase tracking-wide">
+                    <p className="text-[11px] sm:text-xs text-orange-200 uppercase tracking-wide">
                       Distance
                     </p>
                     <p className="text-base sm:text-lg font-bold">
-                      {routeInfo.distance.toFixed(1)} km
+                      {routeInfo.distance > 0
+                        ? `${routeInfo.distance.toFixed(1)} km`
+                        : `${
+                            calculateDistance(
+                              deliveryBoyLat,
+                              deliveryBoyLon,
+                              customerLat,
+                              customerLon,
+                            )?.toFixed(1) || 0
+                          } km`}
                     </p>
                   </div>
                   <div>
-                    <p className="text-[11px] sm:text-xs text-indigo-200 uppercase tracking-wide">
+                    <p className="text-[11px] sm:text-xs text-orange-200 uppercase tracking-wide">
                       ETA
                     </p>
                     <p className="text-base sm:text-lg font-bold">
-                      {Math.ceil(routeInfo.duration)} min
+                      {durationInMinutes} min
                     </p>
                   </div>
                 </div>
               </div>
-              <div className="w-12 h-12 sm:w-14 sm:h-14 bg-white/20 backdrop-blur-md rounded-2xl flex items-center justify-center shadow-inner border border-white/10 shrink-0">
-                <FaMotorcycle size={24} className="text-white sm:text-[28px]" />
+
+              <div className="flex flex-col items-end gap-2 shrink-0">
+                <p className="flex items-center gap-1 text-[10px] sm:text-[11px] text-orange-200 font-medium mr-1 font-mono">
+                  <FiClock size={12} />
+                  Current Time: {formatTimeWithSeconds(currentTime)}
+                </p>
+                <div className="bg-white/20 backdrop-blur-md rounded-2xl px-4 py-3 flex flex-col items-center justify-center shadow-inner border border-white/10 min-w-[100px] sm:min-w-[110px]">
+                  <FaMotorcycle size={22} className="text-white mb-2" />
+                  <p className="text-[9px] sm:text-[10px] text-orange-100 uppercase tracking-widest mb-0.5">
+                    Expected By
+                  </p>
+                  <p className="text-sm sm:text-base font-bold text-white tracking-wide">
+                    {durationInMinutes === "--"
+                      ? "--:--"
+                      : formatTime(expectedDeliveryTime)}
+                  </p>
+                </div>
               </div>
             </div>
 
@@ -320,70 +414,6 @@ console.log(customerLon)
               </div>
             )}
 
-          {/* Dynamic Timeline */}
-          <div className="bg-white rounded-2xl p-4 sm:p-5 shadow-sm border border-slate-100">
-            <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-5 flex items-center gap-2">
-              <FiClock /> Timeline
-            </h4>
-
-            <div className="relative pl-3 space-y-6">
-              <div className="absolute left-[17px] top-2 bottom-2 w-[2px] bg-slate-100"></div>
-
-              {timeline.map((step, index) => (
-                <div
-                  key={index}
-                  className="relative flex items-center gap-3 sm:gap-4 group"
-                >
-                  <div
-                    className={`w-3 h-3 rounded-full relative z-10 ring-4 ring-white ${
-                      step.active
-                        ? "bg-indigo-600 ring-indigo-50 shadow-[0_0_0_4px_rgba(79,70,229,0.1)]"
-                        : step.completed
-                        ? "bg-emerald-500"
-                        : "bg-slate-200"
-                    }`}
-                  >
-                    {step.active && (
-                      <div className="absolute inset-0 bg-indigo-600 rounded-full animate-ping opacity-75"></div>
-                    )}
-                  </div>
-
-                  <div className="flex-1 flex justify-between items-center min-w-0">
-                    <span
-                      className={`font-semibold text-sm sm:text-base truncate pr-2 ${
-                        step.active
-                          ? "text-indigo-600"
-                          : step.completed
-                          ? "text-slate-700"
-                          : "text-slate-400"
-                      }`}
-                    >
-                      {step.label}
-                    </span>
-
-                    {index === 0 && shopOrder?.createdAt && (
-                      <span className="text-[10px] sm:text-[11px] font-bold text-slate-400 shrink-0">
-                        {new Date(shopOrder.createdAt).toLocaleTimeString([], {
-                          hour: "2-digit",
-                          minute: "2-digit",
-                        })}
-                      </span>
-                    )}
-
-                    {step.active && index !== 0 && shopOrder?.updatedAt && (
-                      <span className="text-[10px] sm:text-[11px] font-bold text-indigo-400 shrink-0">
-                        {new Date(shopOrder.updatedAt).toLocaleTimeString([], {
-                          hour: "2-digit",
-                          minute: "2-digit",
-                        })}
-                      </span>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-
           {/* Formatted Delivery Address */}
           <div className="bg-white rounded-2xl p-4 sm:p-5 shadow-sm border border-slate-100 flex items-start gap-3 sm:gap-4">
             <div className="w-10 h-10 bg-rose-50 text-rose-500 rounded-xl flex items-center justify-center shrink-0">
@@ -424,7 +454,10 @@ console.log(customerLon)
                     className="w-full h-full object-cover"
                   />
                 ) : (
-                  <FiShoppingBag size={18} className="text-slate-400 sm:text-[20px]" />
+                  <FiShoppingBag
+                    size={18}
+                    className="text-slate-400 sm:text-[20px]"
+                  />
                 )}
               </div>
 
@@ -487,7 +520,9 @@ console.log(customerLon)
               ))}
 
               <div className="pt-3 mt-3 border-t border-slate-100 flex justify-between items-center">
-                <span className="font-bold text-sm sm:text-base text-slate-500">Item Total</span>
+                <span className="font-bold text-sm sm:text-base text-slate-500">
+                  Item Total
+                </span>
                 <span className="font-black text-slate-900 text-base sm:text-lg">
                   ₹{shopOrder?.subtotal}
                 </span>
@@ -498,7 +533,10 @@ console.log(customerLon)
           {/* Help / Support Footer */}
           <div className="flex items-center justify-between bg-slate-900 text-white rounded-2xl p-4 shadow-lg mt-2">
             <div className="flex items-center gap-3">
-              <FiHelpCircle size={22} className="text-slate-400 sm:text-[24px]" />
+              <FiHelpCircle
+                size={22}
+                className="text-slate-400 sm:text-[24px]"
+              />
               <div>
                 <h4 className="font-bold text-sm sm:text-base">Need Help?</h4>
                 <p className="text-[10px] sm:text-xs text-slate-400 font-medium">

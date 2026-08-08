@@ -95,6 +95,8 @@ const TrackOrderPage = () => {
         { withCredentials: true },
       );
       setOrder(data.order);
+      console.log("📦 FULL ORDER:", data.order);
+console.log("📍 DELIVERY ADDRESS:", data.order?.deliveryAddress);
     } catch (error) {
       console.error("Error fetching order tracking details:", error);
     } finally {
@@ -113,7 +115,7 @@ const TrackOrderPage = () => {
   const shop = shopOrder?.shop;
   const deliveryAddress = order?.deliveryAddress;
   const isAddressObject =
-    typeof deliveryAddress === "object" && deliveryAddress !== null;
+    deliveryAddress && typeof deliveryAddress === "object";
 
   const currentStatus = (shopOrder?.status || "pending").toLowerCase();
 
@@ -626,21 +628,45 @@ const TrackOrderPage = () => {
           ) : order?.user ? (
             <div className="bg-white rounded-2xl p-4 sm:p-5 shadow-sm border border-slate-100 flex items-start gap-3 sm:gap-4">
               <div className="w-10 h-10 bg-rose-50 text-rose-500 rounded-xl flex items-center justify-center shrink-0">
-                <FiUser size={20} />
+                <FiMapPin size={20} />
               </div>
+
               <div className="flex-1 min-w-0">
-                <h4 className="text-[10px] sm:text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">
-                  Customer Details
-                </h4>
-                <p className="font-bold text-slate-800 text-sm sm:text-base capitalize mb-0.5 truncate">
-                  {order.user.fullName}
+                <div className="flex justify-between items-center mb-1">
+                  <h4 className="text-[10px] sm:text-xs font-bold text-slate-400 uppercase tracking-wider">
+                    Delivery Address
+                  </h4>
+
+                  {deliveryAddress?.addressType && (
+                    <span className="text-[9px] sm:text-[10px] font-bold text-rose-600 bg-rose-50 px-2 py-0.5 rounded uppercase">
+                      {deliveryAddress.addressType}
+                    </span>
+                  )}
+                </div>
+
+                <p className="font-bold text-slate-800 text-sm sm:text-base capitalize mb-0.5">
+                  {deliveryAddress?.receiverName || "Delivery Location"}
                 </p>
-                <p className="text-xs sm:text-sm font-medium text-slate-500 leading-snug break-words">
-                  {order.user.email}
+
+                <p className="text-xs sm:text-sm font-medium text-slate-500 leading-snug">
+                  {deliveryAddress?.flatNo && `${deliveryAddress.flatNo}, `}
+
+                  {deliveryAddress?.buildingName &&
+                    `${deliveryAddress.buildingName}, `}
+
+                  {deliveryAddress?.streetArea ||
+                    deliveryAddress?.address ||
+                    deliveryAddress?.areaName ||
+                    deliveryAddress?.city ||
+                    "Address not available"}
                 </p>
-                <p className="text-xs sm:text-sm font-medium text-slate-500 leading-snug ">
-                  {deliveryAddress?.flatNo}
-                </p>
+
+                {deliveryAddress?.mobileNumber && (
+                  <p className="text-xs sm:text-sm font-semibold text-slate-600 mt-2 flex items-center gap-1.5">
+                    <FiPhone size={12} />
+                    +91 {deliveryAddress.mobileNumber}
+                  </p>
+                )}
               </div>
             </div>
           ) : null}
