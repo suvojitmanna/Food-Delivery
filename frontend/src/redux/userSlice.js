@@ -22,7 +22,6 @@ const userSlice = createSlice({
             state.userData = action.payload;
         },
 
-        // LOADERS
         setUserLoading: (state, action) => {
             state.userLoading = action.payload;
         },
@@ -39,7 +38,6 @@ const userSlice = createSlice({
             state.itemLoading = action.payload;
         },
 
-        // DATA
         setCity: (state, action) => {
             state.city = action.payload;
         },

@@ -33,6 +33,7 @@ import useGetMyOrders from "./hooks/useGetMyOrders";
 import { FiAlertCircle, FiCheckCircle } from "react-icons/fi";
 import UseUpdateLocation from "./hooks/useupdateLocation";
 import TrackOrder from "./components/trackOrder";
+import ChangeLocation from "./components/changeLocation";
 
 export const serverUrl = import.meta.env.VITE_BASE_URL;
 
@@ -99,7 +100,8 @@ const App = () => {
     location.pathname.startsWith("/DeliveryAddressPage") ||
     location.pathname.startsWith("/order-placed") ||
     location.pathname.startsWith("/track-order") ||
-    location.pathname.startsWith("/my-order")
+    location.pathname.startsWith("/my-order")||
+    location.pathname.startsWith("/change-location");
 
   if (loading) {
     return (
@@ -130,7 +132,7 @@ const App = () => {
           path="/forgot-password"
           element={!userData ? <ForgotPassword /> : <Navigate to="/" />}
         />
-
+        <Route path="/change-location" element={<ChangeLocation />} />
         <Route
           path="/"
           element={

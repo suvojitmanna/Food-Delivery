@@ -55,7 +55,6 @@ const cartSlice = createSlice({
                 delete shopCart.items[itemId];
             }
 
-            // Remove shop cart if empty
             if (Object.keys(shopCart.items).length === 0) {
                 delete state.carts[shopId];
             }

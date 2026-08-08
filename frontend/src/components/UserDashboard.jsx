@@ -65,22 +65,35 @@ const UserDashboard = () => {
   const userState = useSelector((state) => state.user);
   const { userData } = useSelector((state) => state.user);
 
-  const location = userState?.city;
+  const [selectedLocation, setSelectedLocation] = useState(() => {
+    try {
+      const saved = localStorage.getItem("selectedLocation");
+      return saved ? JSON.parse(saved) : null;
+    } catch {
+      return null;
+    }
+  });
+
+  useEffect(() => {
+    const handleLocationChanged = (event) => {
+      console.log("📍 Navbar location changed:", event.detail);
+      setSelectedLocation(event.detail);
+    };
+
+    window.addEventListener("locationChanged", handleLocationChanged);
+
+    return () => {
+      window.removeEventListener("locationChanged", handleLocationChanged);
+    };
+  }, []);
+
+  const location = selectedLocation || userState?.city;
+
   const city =
     location?.city ||
     location?.town ||
     location?.village ||
     location?.municipality ||
-    location?.county ||
-    location?.state_district ||
-    location?.state ||
-    "your city";
-
-  const municipality =
-    location?.municipality ||
-    location?.city ||
-    location?.town ||
-    location?.village ||
     location?.county ||
     location?.state_district ||
     location?.state ||
@@ -356,7 +369,7 @@ const UserDashboard = () => {
               // Direct Access
             </span>
             <h2 className="font-sans text-3xl sm:text-4xl font-black tracking-tight text-slate-900 uppercase">
-              The Elite Tier Offers of {municipality}
+              The Elite Tier Offers of {city}
             </h2>
           </motion.div>
           <motion.div
@@ -489,7 +502,7 @@ const UserDashboard = () => {
 
         {/* SECTION 3: RESTAURANT LISTS */}
         <section className="flex flex-col gap-16 w-full">
-          {/* HEADER (Sticky or Global for lists) */}
+          {/* HEADER */}
           <motion.div
             initial="hidden"
             whileInView="show"
@@ -508,7 +521,7 @@ const UserDashboard = () => {
               <h2 className="font-serif text-3xl sm:text-4xl lg:text-5xl font-black tracking-tight text-slate-900 leading-[1.1]">
                 Restaurants with online food delivery in{" "}
                 <span className="text-[#ff4d2d] relative inline-block">
-                  {municipality}
+                  {city}
                   <span className="absolute left-0 bottom-1 w-full h-[6px] bg-orange-200/70 rounded-full -z-10" />
                 </span>
               </h2>
@@ -586,21 +599,21 @@ const UserDashboard = () => {
           {/* MAPPED CATEGORY SECTIONS*/}
           {[
             {
-              title: `Top restaurant chains in ${municipality}`,
+              title: `Top restaurant chains in ${city}`,
               icon: <FiAward />,
               data: [...filteredShops]
                 .sort((a, b) => (b.rating || 4.5) - (a.rating || 4.5))
                 .slice(0, 8),
             },
             {
-              title: `Fast delivery restaurants in ${municipality}`,
+              title: `Fast delivery restaurants in ${city}`,
               icon: <FiZap />,
               data: [...filteredShops]
                 .sort((a, b) => (a.deliveryTime || 30) - (b.deliveryTime || 30))
                 .slice(0, 8),
             },
             {
-              title: `Trending restaurants in ${municipality}`,
+              title: `Trending restaurants in ${city}`,
               icon: <FiTrendingUp />,
               data: [...filteredShops].slice(0, 8),
             },
@@ -626,7 +639,7 @@ const UserDashboard = () => {
               key={sectionIndex}
               categorySection={categorySection}
               shops={shops}
-              municipality={municipality}
+              municipality={city}
               navigate={navigate}
             />
           ))}
@@ -638,7 +651,6 @@ const UserDashboard = () => {
 
 export default UserDashboard;
 
-// Handles triggering the skeleton loading state ON VIEWPORT ENTER
 const RestaurantCategorySection = ({
   categorySection,
   shops,

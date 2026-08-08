@@ -167,20 +167,34 @@ export const getMyShop = async (req, res) => {
 export const getShopByCity = async (req, res) => {
     try {
         const { city } = req.params;
-        const allShops = await Shop.find({}, "name city state");
+
+        if (!city || !city.trim()) {
+            return res.status(400).json({
+                success: false,
+                message: "City is required",
+            });
+        }
 
         const shops = await Shop.find({
             city: {
-                $regex: city.trim(),
+                $regex: `^${city.trim()}$`,
                 $options: "i",
             },
-        });
+            isOpen: true,
+        })
+            .populate("owner")
+            .populate("items");
 
         return res.status(200).json({
             success: true,
             shops,
         });
     } catch (error) {
-        console.log(error);
+        console.error("Get Shop By City Error:", error);
+
+        return res.status(500).json({
+            success: false,
+            message: "Server Error",
+        });
     }
 };

@@ -20,7 +20,6 @@ import { glassToast, serverUrl } from "../App";
 import { addMyOrder } from "../redux/userSlice";
 import { IoIosArrowUp, IoIosArrowDown } from "react-icons/io";
 import { FaStar } from "react-icons/fa";
-import { calculateShopsDeliveryMetrics } from "../../utils/location";
 import { TbEdit } from "react-icons/tb";
 
 const VegIcon = () => (
@@ -97,40 +96,48 @@ const Cart = () => {
   }, []);
 
   const calculatedDistanceInfo = useMemo(() => {
-    if (!shop) return { distance: "2.5 km", time: "30-40 mins" };
+    if (
+      !shop?.location?.latitude ||
+      !shop?.location?.longitude ||
+      !selectedAddress?.latitude ||
+      !selectedAddress?.longitude
+    ) {
+      return {
+        distance: "0 km",
+        time: "30-40 mins",
+      };
+    }
 
-    const userCoords = userData?.location?.coordinates || [
-      userData?.location?.lng || userData?.location?.longitude,
-      userData?.location?.lat || userData?.location?.latitude,
-    ];
+    const R = 6371;
 
-    const shopForUtility = {
-      ...shop,
-      location: {
-        ...shop.location,
-        latitude:
-          shop?.location?.latitude ||
-          shop?.location?.lat ||
-          shop?.location?.coordinates?.[1],
-        longitude:
-          shop?.location?.longitude ||
-          shop?.location?.lng ||
-          shop?.location?.coordinates?.[0],
-      },
-    };
+    const shopLat = Number(shop.location.latitude);
+    const shopLng = Number(shop.location.longitude);
 
-    const [enhancedShop] = calculateShopsDeliveryMetrics(
-      [shopForUtility],
-      userCoords,
-    );
+    const addressLat = Number(selectedAddress.latitude);
+    const addressLng = Number(selectedAddress.longitude);
+
+    const dLat = ((addressLat - shopLat) * Math.PI) / 180;
+
+    const dLng = ((addressLng - shopLng) * Math.PI) / 180;
+
+    const a =
+      Math.sin(dLat / 2) ** 2 +
+      Math.cos((shopLat * Math.PI) / 180) *
+        Math.cos((addressLat * Math.PI) / 180) *
+        Math.sin(dLng / 2) ** 2;
+
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+
+    const distance = R * c;
 
     return {
-      distance: enhancedShop?.distance || shop?.distance || "2.5 km",
-      time: enhancedShop?.deliveryTime
-        ? `${enhancedShop.deliveryTime} mins`
-        : "30-40 mins",
+      distance: `${distance.toFixed(1)} km`,
+      time:
+        distance <= 7
+          ? `${shop?.deliveryTime || "30-40"} mins`
+          : "Not available",
     };
-  }, [userData, shop]);
+  }, [shop, selectedAddress]);
 
   if (!cart || !cart.items || Object.keys(cart.items).length === 0) {
     return (
@@ -159,6 +166,32 @@ const Cart = () => {
       </div>
     );
   }
+
+  const handleDeleteAddress = async (e, addressId) => {
+    e.stopPropagation();
+
+    try {
+      const { data } = await axios.delete(
+        `${serverUrl}/api/delivery-address/${addressId}`,
+        { withCredentials: true },
+      );
+
+      if (data.success) {
+        glassToast("Address deleted successfully", "success");
+        const updatedAddresses = addresses.filter((a) => a._id !== addressId);
+        setAddresses(updatedAddresses);
+        if (selectedAddress?._id === addressId) {
+          setSelectedAddress(updatedAddresses[0] || null);
+        }
+      }
+    } catch (error) {
+      console.error("Failed to delete address:", error);
+      glassToast(
+        error.response?.data?.message || "Failed to delete address.",
+        "error",
+      );
+    }
+  };
 
   const items = Object.values(cart.items);
 
@@ -192,8 +225,48 @@ const Cart = () => {
       couponDiscount,
   );
 
+  const shopDistance = useMemo(() => {
+    if (
+      !shop?.location?.latitude ||
+      !shop?.location?.longitude ||
+      !selectedAddress?.latitude ||
+      !selectedAddress?.longitude
+    ) {
+      return null;
+    }
+
+    const R = 6371;
+
+    const lat1 = Number(shop.location.latitude);
+    const lon1 = Number(shop.location.longitude);
+
+    const lat2 = Number(selectedAddress.latitude);
+    const lon2 = Number(selectedAddress.longitude);
+
+    const dLat = ((lat2 - lat1) * Math.PI) / 180;
+    const dLon = ((lon2 - lon1) * Math.PI) / 180;
+
+    const a =
+      Math.sin(dLat / 2) ** 2 +
+      Math.cos((lat1 * Math.PI) / 180) *
+        Math.cos((lat2 * Math.PI) / 180) *
+        Math.sin(dLon / 2) ** 2;
+
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+
+    return R * c;
+  }, [shop, selectedAddress]);
+
+  const deliveryAvailable = shopDistance !== null && shopDistance <= 7;
+
   const handlePlaceOrder = async () => {
     try {
+      if (!selectedAddress) {
+        glassToast("Please select a delivery address.", "error");
+
+        navigate("/DeliveryAddressPage");
+        return;
+      }
       if (!selectedAddress) {
         glassToast("Please select a delivery address.", "error");
         navigate("/DeliveryAddressPage");
@@ -315,7 +388,7 @@ const Cart = () => {
               </div>
               <button
                 onClick={() => setShowAddressList(true)}
-                className="text-[#E23744] font-bold text-sm bg-red-50 px-3 py-1.5 rounded-lg active:scale-95 transition-transform cursor-pointer"
+                className="text-[#E23744] font-bold text-sm bg-red-50 px-3 py-1.5 rounded-lg active:scale-95 transition-transform cursor-pointer border-2 border-dotted"
               >
                 Change
               </button>
@@ -350,7 +423,11 @@ const Cart = () => {
                   >
                     <div className="flex gap-3">
                       <FiMapPin
-                        className={`mt-1 ${selectedAddress?._id === address._id ? "text-[#E23744]" : "text-gray-400"}`}
+                        className={`mt-1 ${
+                          selectedAddress?._id === address._id
+                            ? "text-[#E23744]"
+                            : "text-gray-400"
+                        }`}
                         size={18}
                       />
                       <div className="flex-1 pr-2">
@@ -367,16 +444,29 @@ const Cart = () => {
                         </p>
                       </div>
                     </div>
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        navigate(`/DeliveryAddressPage?edit=${address._id}`);
-                      }}
-                      className="shrink-0 ml-2 px-3 py-1.5 text-xs font-bold text-[#E23744] bg-red-50 rounded-lg hover:bg-red-100 active:scale-95 transition-all cursor-pointer"
-                    >
-                      <TbEdit size={20} />
-                    </button>
+
+                    <div className="flex items-center gap-1 shrink-0 ml-2">
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          navigate(`/DeliveryAddressPage?edit=${address._id}`);
+                        }}
+                        className="px-2.5 py-1.5 text-xs font-bold text-[#E23744] bg-red-50 rounded-lg hover:bg-red-100 active:scale-95 transition-all cursor-pointer"
+                        title="Edit Address"
+                      >
+                        <TbEdit size={18} />
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={(e) => handleDeleteAddress(e, address._id)}
+                        className="px-2.5 py-1.5 text-xs font-bold text-red-600 bg-red-50 rounded-lg hover:bg-red-100 active:scale-95 transition-all cursor-pointer"
+                        title="Delete Address"
+                      >
+                        <FiTrash2 size={18} />
+                      </button>
+                    </div>
                   </div>
                 ))}
               </div>
@@ -403,9 +493,8 @@ const Cart = () => {
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex items-start gap-2 flex-1">
-                      <VegIcon />
                       {item.image && (
-                        <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-lg overflow-hidden shrink-0 border border-gray-100 bg-gray-50">
+                        <div className="w-15 h-15 sm:w-14 sm:h-14 rounded-lg overflow-hidden shrink-0 border border-gray-100 bg-gray-50">
                           <img
                             src={item.image}
                             alt={item.name}
@@ -414,15 +503,15 @@ const Cart = () => {
                         </div>
                       )}
                       <div className="flex-1">
-                        <h4 className="font-semibold text-gray-800 text-sm leading-snug">
-                          {item.name}
-                        </h4>
-                        <p className="text-gray-800 font-medium text-sm mt-1">
-                          ₹{item.price.toLocaleString("en-IN")}
-                        </p>
+                        <div className="flex mt-3 items-center">
+                          <VegIcon size={10} />
+                          <h4 className="font-semibold pl-1 text-gray-800 text-sm leading-snug">
+                            {item.name}
+                          </h4>
+                        </div>
                         {item.addons && (
                           <p className="text-gray-400 text-xs mt-1">
-                            Extra Cheese
+                            {item.addons}
                           </p>
                         )}
                       </div>
@@ -459,6 +548,21 @@ const Cart = () => {
                       </p>
                     </div>
                   </div>
+                  {shopDistance !== null && (
+                    <div className="mt-1.5">
+                      {deliveryAvailable ? (
+                        <p className="text-[11px] font-bold text-green-600 flex items-center gap-1">
+                          <span className="w-1.5 h-1.5 rounded-full bg-green-500"></span>
+                          Delivery available • {shopDistance.toFixed(1)} km
+                        </p>
+                      ) : (
+                        <p className="text-[11px] font-bold text-red-500 flex items-center gap-1">
+                          <span className="w-1.5 h-1.5 rounded-full bg-red-500"></span>
+                          Not deliverable • {shopDistance.toFixed(1)} km away
+                        </p>
+                      )}
+                    </div>
+                  )}
                   <div className="border-b border-gray-100 border-dashed mt-2"></div>
                 </motion.div>
               ))}
@@ -467,9 +571,10 @@ const Cart = () => {
 
           <button
             onClick={() => navigate(`/menu/${shopId}`)}
-            className="w-full mt-3 py-3 text-[#E23744] font-medium text-sm flex items-center justify-center gap-2 hover:bg-red-50 rounded-xl transition-colors"
+            className="w-full mt-2 py-3 flex items-center justify-center gap-2 border-2 border-dashed border-red-300 text-orange-600 bg-orange-50/50 rounded-xl font-bold text-sm hover:bg-red-100 hover:border-red-400 active:scale-[0.98] transition-all duration-200 cursor-pointer"
           >
-            <FiPlus /> Add more items
+            <FiPlus size={18} className="stroke-[3]" />
+            Add more items
           </button>
         </div>
 
@@ -662,7 +767,7 @@ const Cart = () => {
           {/* Payment Method Selector */}
           <div
             onClick={() => setShowPaymentMenu(!showPaymentMenu)}
-            className="flex flex-col cursor-pointer bg-gray-50 px-4 py-2 rounded-xl border border-gray-100 min-w-[120px]"
+            className="flex flex-col cursor-pointer bg-gray-50 px-4 py-2 rounded-xl border border-gray-100 min-w-[120px] border-2 border-dotted border-green-600"
           >
             <div className="flex items-center gap-1 text-[10px] font-bold text-gray-500 uppercase tracking-wider">
               Pay Using{" "}
@@ -719,17 +824,14 @@ const Cart = () => {
           {/* Place Order Button */}
           <button
             onClick={handlePlaceOrder}
-            className="flex-1 bg-green-600 text-white rounded-xl py-3.5 px-4 font-bold text-base flex items-center justify-between active:scale-[0.98] transition-transform shadow-lg shadow-red-500/20"
+            disabled={!deliveryAvailable}
+            className={`flex-1 rounded-xl py-3.5 px-4 font-bold ${
+              deliveryAvailable
+                ? "bg-green-600 text-white"
+                : "bg-gray-300 text-gray-500 cursor-not-allowed"
+            }`}
           >
-            <div className="flex flex-col items-start leading-tight">
-              <span className="text-white text-base">Place Order</span>
-            </div>
-            <div className="flex items-center gap-1">
-              <span className="text-sm font-semibold">
-                ₹{grandTotal.toLocaleString("en-IN")}
-              </span>
-              <FiChevronRight size={18} />
-            </div>
+            {deliveryAvailable ? "Place Order" : "Not available for delivery"}
           </button>
         </div>
       </div>

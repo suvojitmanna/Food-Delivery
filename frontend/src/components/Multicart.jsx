@@ -14,12 +14,14 @@ import {
   FiEdit3,
   FiInfo,
 } from "react-icons/fi";
+import { RxCross1 } from "react-icons/rx";
 import { IoIosArrowUp, IoIosArrowDown } from "react-icons/io";
 import { TbEdit } from "react-icons/tb";
 import { addToCart, clearAllCart, removeFromCart } from "../redux/cartSlice";
 import axios from "axios";
 import { glassToast, serverUrl } from "../App";
 import { addMyOrder } from "../redux/userSlice";
+import { FaStar } from "react-icons/fa6";
 
 const VegIcon = () => (
   <div className="w-3.5 h-3.5 border border-[#24963F] flex items-center justify-center rounded-[2px] shrink-0 mt-0.5">
@@ -47,8 +49,6 @@ const MultiCart = () => {
 
   // Fetch ALL carts from Redux
   const allCarts = useSelector((state) => state.cart.carts);
-
-  // Filter out empty carts and format as an array of [shopId, cartData]
   const activeCarts = Object.entries(allCarts || {}).filter(
     ([, cart]) => cart.items && Object.keys(cart.items).length > 0,
   );
@@ -97,6 +97,80 @@ const MultiCart = () => {
     getAddresses();
   }, []);
 
+  const handleDeleteAddress = async (e, addressId) => {
+    e.stopPropagation();
+
+    try {
+      const { data } = await axios.delete(
+        `${serverUrl}/api/delivery-address/${addressId}`,
+        { withCredentials: true },
+      );
+
+      if (data.success) {
+        glassToast("Address deleted successfully", "success");
+        const updatedAddresses = addresses.filter((a) => a._id !== addressId);
+        setAddresses(updatedAddresses);
+        if (selectedAddress?._id === addressId) {
+          setSelectedAddress(updatedAddresses[0] || null);
+        }
+      }
+    } catch (error) {
+      console.error("Failed to delete address:", error);
+      glassToast(
+        error.response?.data?.message || "Failed to delete address.",
+        "error",
+      );
+    }
+  };
+
+  const calculateDistance = (lat1, lon1, lat2, lon2) => {
+    const R = 6371; // KM
+
+    const dLat = ((lat2 - lat1) * Math.PI) / 180;
+    const dLon = ((lon2 - lon1) * Math.PI) / 180;
+
+    const a =
+      Math.sin(dLat / 2) ** 2 +
+      Math.cos((lat1 * Math.PI) / 180) *
+        Math.cos((lat2 * Math.PI) / 180) *
+        Math.sin(dLon / 2) ** 2;
+
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+
+    return R * c;
+  };
+  const getShopDistance = (shop) => {
+    if (
+      selectedAddress?.latitude == null ||
+      selectedAddress?.longitude == null ||
+      shop?.location?.latitude == null ||
+      shop?.location?.longitude == null
+    ) {
+      return null;
+    }
+
+    // DELIVERY ADDRESS coordinates
+    const addressLat = Number(selectedAddress.latitude);
+    const addressLng = Number(selectedAddress.longitude);
+
+    // SHOP coordinates
+    const shopLat = Number(shop.location.latitude);
+    const shopLng = Number(shop.location.longitude);
+
+    return calculateDistance(addressLat, addressLng, shopLat, shopLng);
+  };
+  const deliveryStatus = activeCarts.map(([shopId, cart]) => {
+    const distance = getShopDistance(cart.shop);
+
+    return {
+      shopId,
+      distance,
+      available: distance !== null && distance <= 7,
+    };
+  });
+
+  const allShopsDeliverable =
+    deliveryStatus.length > 0 && deliveryStatus.every((shop) => shop.available);
   // Early return if EVERYTHING is empty
   if (activeCarts.length === 0) {
     return (
@@ -150,7 +224,7 @@ const MultiCart = () => {
     });
   });
 
-  const platformFee = 8 * activeCarts.length; // Charge platform fee per shop
+  const platformFee = 8 * activeCarts.length;
   const deliveryFee = 0;
   const couponDiscount = 0;
 
@@ -166,6 +240,18 @@ const MultiCart = () => {
 
   const handlePlaceOrder = async () => {
     try {
+      if (!selectedAddress) {
+        glassToast("Please select a delivery address.", "error");
+
+        navigate("/DeliveryAddressPage");
+        return;
+      }
+
+      if (!allShopsDeliverable) {
+        glassToast("This address is outside the delivery area.", "error");
+
+        return;
+      }
       if (!selectedAddress) {
         glassToast("Please select a delivery address.", "error");
         navigate("/DeliveryAddressPage");
@@ -214,7 +300,7 @@ const MultiCart = () => {
         <div className="flex items-center gap-3">
           <button
             onClick={() => navigate(-1)}
-            className="p-1 -ml-1 active:scale-90 transition-transform"
+            className="p-2 -ml-2 rounded-full hover:bg-gray-100 hover:-translate-x-1 active:scale-90 transition-all duration-200 cursor-pointer"
           >
             <FiArrowLeft size={24} className="text-gray-800" />
           </button>
@@ -265,7 +351,7 @@ const MultiCart = () => {
               </div>
               <button
                 onClick={() => setShowAddressList(true)}
-                className="text-[#E23744] font-bold text-sm bg-red-50 px-3 py-1.5 rounded-lg active:scale-95 transition-transform cursor-pointer"
+                className="text-[#E23744] font-bold text-sm border-2 border-dotted bg-red-50 px-3 py-1.5 rounded-lg active:scale-95 transition-transform cursor-pointer"
               >
                 Change
               </button>
@@ -280,7 +366,7 @@ const MultiCart = () => {
                   onClick={() => setShowAddressList(false)}
                   className="text-gray-400 p-1 hover:bg-gray-100 rounded-full cursor-pointer"
                 >
-                  <FiArrowLeft size={20} className="rotate-180" />
+                  <RxCross1 size={20} className="text-gray-500" />
                 </button>
               </div>
 
@@ -321,16 +407,28 @@ const MultiCart = () => {
                         </p>
                       </div>
                     </div>
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        navigate(`/DeliveryAddressPage?edit=${address._id}`);
-                      }}
-                      className="shrink-0 ml-2 px-3 py-1.5 text-xs font-bold text-[#E23744] bg-red-50 rounded-lg hover:bg-red-100 active:scale-95 transition-all cursor-pointer"
-                    >
-                      <TbEdit size={20} />
-                    </button>
+                    <div className="flex items-center gap-1 shrink-0 ml-2">
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          navigate(`/DeliveryAddressPage?edit=${address._id}`);
+                        }}
+                        className="px-2.5 py-1.5 text-xs font-bold text-[#E23744] bg-red-50 rounded-lg hover:bg-red-100 active:scale-95 transition-all cursor-pointer"
+                        title="Edit Address"
+                      >
+                        <TbEdit size={18} />
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={(e) => handleDeleteAddress(e, address._id)}
+                        className="px-2.5 py-1.5 text-xs font-bold text-red-600 bg-red-50 rounded-lg hover:bg-red-100 active:scale-95 transition-all cursor-pointer"
+                        title="Delete Address"
+                      >
+                        <FiTrash2 size={18} />
+                      </button>
+                    </div>
                   </div>
                 ))}
               </div>
@@ -347,23 +445,72 @@ const MultiCart = () => {
 
         {/* MULTIPLE RESTAURANTS BLOCKS */}
         {activeCarts.map(([shopId, cart]) => {
+          const shopDistance = getShopDistance(cart.shop);
+
+          const shopDeliveryAvailable =
+            shopDistance !== null && shopDistance <= 7;
+
           const shopItems = Object.values(cart.items);
+
           const shopSubtotal = shopItems.reduce(
             (sum, item) => sum + item.price * item.quantity,
             0,
           );
-
           return (
             <div key={shopId} className="bg-white rounded-2xl p-4 shadow-sm">
-              <div className="flex items-center justify-between border-b border-gray-100 border-dashed pb-3 mb-4">
-                <h3 className="font-extrabold text-gray-900 text-base">
-                  {cart.shop?.name || "Restaurant"}
-                </h3>
+              <div className="flex items-start justify-between border-b border-dashed border-gray-200 pb-4 mb-4">
+                <div className="flex gap-3">
+                  {/* Restaurant Image */}
+                  <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-xl overflow-hidden shrink-0 border border-gray-100 bg-gray-50 shadow-sm">
+                    <img
+                      src={cart.shop.image}
+                      alt={cart.shop.name}
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+
+                  <div className="flex flex-col">
+                    <h3 className="font-extrabold text-gray-900 text-base leading-tight">
+                      {cart.shop?.name || "Restaurant"}
+                    </h3>
+
+                    <div className="flex items-center gap-1.5 mt-1">
+                      <div className="flex items-center gap-1 bg-[#24963F] text-white px-1.5 py-0.5 rounded text-[10px] font-bold shadow-sm">
+                        {cart?.shop?.rating || "4.2"}{" "}
+                        <FaStar size={9} className="mb-[1px]" />
+                      </div>
+                      <span className="text-gray-500 text-[11px] font-medium">
+                        (
+                        {cart?.shop?.totalReviews >= 1000
+                          ? `${(cart?.shop.totalReviews / 1000).toFixed(1)}k`
+                          : cart?.shop?.totalReviews || "1k+"}{" "}
+                        reviews)
+                      </span>
+                    </div>
+                    {shopDistance !== null && (
+                      <div className="mt-1.5">
+                        {shopDeliveryAvailable ? (
+                          <p className="text-[11px] font-bold text-green-600 flex items-center gap-1">
+                            <span className="w-1.5 h-1.5 rounded-full bg-green-500"></span>
+                            Delivery available • {shopDistance.toFixed(1)} km
+                          </p>
+                        ) : (
+                          <p className="text-[11px] font-bold text-red-500 flex items-center gap-1">
+                            <span className="w-1.5 h-1.5 rounded-full bg-red-500"></span>
+                            Not deliverable • {shopDistance.toFixed(1)} km away
+                          </p>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Add More Button */}
                 <button
-                  onClick={() => navigate(`/shop/${shopId}`)}
-                  className="text-[#E23744] font-medium text-xs bg-red-50 px-2 py-1 rounded-lg active:scale-95 transition-transform"
+                  onClick={() => navigate(`/menu/${shopId}`)}
+                  className="shrink-0 mt-0.5 text-[#E23744] font-bold text-xs border border-dashed border-[#E23744] bg-red-50 px-3 py-1.5 rounded-lg hover:bg-red-100 active:scale-95 transition-all cursor-pointer"
                 >
-                  Add more
+                  + Add more
                 </button>
               </div>
 
@@ -377,9 +524,8 @@ const MultiCart = () => {
                     >
                       <div className="flex items-start justify-between gap-3">
                         <div className="flex items-start gap-2 flex-1">
-                          <VegIcon />
                           {item.image && (
-                            <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-lg overflow-hidden shrink-0 border border-gray-100 bg-gray-50">
+                            <div className="w-15 h-15 sm:w-14 sm:h-14 rounded-lg overflow-hidden shrink-0 border border-gray-100 bg-gray-50">
                               <img
                                 src={item.image}
                                 alt={item.name}
@@ -388,12 +534,12 @@ const MultiCart = () => {
                             </div>
                           )}
                           <div className="flex-1">
-                            <h4 className="font-semibold text-gray-800 text-sm leading-snug">
-                              {item.name}
-                            </h4>
-                            <p className="text-gray-800 font-medium text-sm mt-1">
-                              ₹{item.price.toLocaleString("en-IN")}
-                            </p>
+                            <div className="flex mt-3 items-center">
+                              <VegIcon size={10} />
+                              <h4 className="font-semibold pl-1 text-gray-800 text-sm leading-snug">
+                                {item.name}
+                              </h4>
+                            </div>
                             {item.addons && (
                               <p className="text-gray-400 text-xs mt-1">
                                 {item.addons}
@@ -423,7 +569,13 @@ const MultiCart = () => {
                             </span>
                             <button
                               onClick={() =>
-                                dispatch(addToCart({ ...item, shopId }))
+                                dispatch(
+                                  addToCart({
+                                    item,
+                                    shop: item.shop,
+                                    shopId,
+                                  }),
+                                )
                               }
                               className="w-8 h-full flex items-center justify-center text-[#E23744] active:bg-red-100 transition-colors"
                             >
@@ -438,16 +590,15 @@ const MultiCart = () => {
                           </p>
                         </div>
                       </div>
+                      {/* Shop Subtotal */}
+                      <div className="mt-3 flex justify-between items-center text-xs font-bold text-gray-500">
+                        <span>Shop Subtotal</span>
+                        <span>₹{shopSubtotal.toLocaleString("en-IN")}</span>
+                      </div>
                       <div className="border-b border-gray-100 border-dashed mt-2"></div>
                     </motion.div>
                   ))}
                 </AnimatePresence>
-              </div>
-
-              {/* Shop Subtotal */}
-              <div className="mt-3 flex justify-between items-center text-xs font-bold text-gray-500">
-                <span>Shop Subtotal</span>
-                <span>₹{shopSubtotal.toLocaleString("en-IN")}</span>
               </div>
             </div>
           );
@@ -642,7 +793,7 @@ const MultiCart = () => {
           {/* Payment Method Selector */}
           <div
             onClick={() => setShowPaymentMenu(!showPaymentMenu)}
-            className="flex flex-col cursor-pointer bg-gray-50 px-4 py-2 rounded-xl border border-gray-100 min-w-[120px]"
+            className="flex flex-col cursor-pointer bg-gray-50 px-4 py-2 rounded-xl border-2 border-dotted border-green-600 min-w-[120px]"
           >
             <div className="flex items-center gap-1 text-[10px] font-bold text-gray-500 uppercase tracking-wider">
               Pay Using{" "}
@@ -701,17 +852,30 @@ const MultiCart = () => {
           {/* Place Order Button */}
           <button
             onClick={handlePlaceOrder}
-            className="flex-1 bg-green-600 text-white rounded-xl py-3.5 px-4 font-bold text-base flex items-center justify-between active:scale-[0.98] transition-transform shadow-lg shadow-green-600/20"
+            disabled={!allShopsDeliverable}
+            className={`flex-1 rounded-xl py-3.5 px-4 font-bold text-base flex items-center justify-between transition-transform shadow-lg ${
+              allShopsDeliverable
+                ? "bg-green-600 text-white shadow-green-600/20 active:scale-[0.98]"
+                : "bg-gray-300 text-gray-500 cursor-not-allowed shadow-none"
+            }`}
           >
             <div className="flex flex-col items-start leading-tight">
-              <span className="text-white text-base">Place Order</span>
-            </div>
-            <div className="flex items-center gap-1">
-              <span className="text-sm font-semibold">
-                ₹{grandTotal.toLocaleString("en-IN")}
+              <span className="text-base">
+                {allShopsDeliverable
+                  ? "Place Order"
+                  : "Not available for delivery"}
               </span>
-              <FiChevronRight size={18} />
             </div>
+
+            {allShopsDeliverable && (
+              <div className="flex items-center gap-1">
+                <span className="text-sm font-semibold">
+                  ₹{grandTotal.toLocaleString("en-IN")}
+                </span>
+
+                <FiChevronRight size={18} />
+              </div>
+            )}
           </button>
         </div>
       </div>

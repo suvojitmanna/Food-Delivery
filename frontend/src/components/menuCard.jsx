@@ -594,7 +594,7 @@ const MenuCard = () => {
                     onClick={() => {
                       setActiveCategory(cat);
                       setIsMenuOpen(false);
-                      window.scrollTo({ top: 300, behavior: "smooth" }); 
+                      window.scrollTo({ top: 300, behavior: "smooth" });
                     }}
                     className={`w-full flex items-center justify-between py-4 border-b border-gray-100 text-left ${activeCategory === cat ? "text-[#E23744] font-bold" : "text-gray-700 font-medium"}`}
                   >

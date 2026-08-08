@@ -18,7 +18,7 @@ const RestaurantCartCard = ({ cart, onClose }) => {
 
   const handleNavigate = (path) => {
     navigate(path);
-    if (onClose) onClose(); 
+    if (onClose) onClose();
   };
 
   return (
@@ -52,16 +52,6 @@ const RestaurantCartCard = ({ cart, onClose }) => {
           <span className="text-gray-800 font-black">₹{totalPrice}</span>
         </div>
 
-        <div className="flex items-center gap-1.5 text-[13px] text-gray-500">
-          <FiClock size={14} className="text-gray-400" />
-          <span>
-            <strong className="text-gray-800 font-bold">
-              {cart.shop.deliveryTime}
-            </strong>{" "}
-            mins
-          </span>
-        </div>
-
         {/* Bottom Actions */}
         <div className="flex items-center justify-between mt-1">
           <button
@@ -83,7 +73,7 @@ const RestaurantCartCard = ({ cart, onClose }) => {
       {/* Remove / Clear Button */}
       <button
         onClick={() => dispatch(clearShopCart(cart.shop._id))}
-        className="absolute top-3 right-3 w-8 h-8 rounded-full md:bg-transparent md:text-gray-300 bg-gray-50 text-gray-400 hover:bg-red-50 hover:text-red-500 flex items-center justify-center transition-all duration-200 cursor-pointer"
+        className="absolute top-3 right-3 w-8 h-8 rounded-full md:bg-transparent md:text-gray-600 bg-gray-500 text-gray-600 hover:bg-red-50 hover:text-red-500 flex items-center justify-center transition-all duration-200 cursor-pointer"
         title="Remove from carts"
       >
         <FiTrash2 size={15} />
